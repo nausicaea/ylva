@@ -4,6 +4,9 @@ version = "0.1.0"
 description = ""
 authors = ["Eleanor Young <eleanor.young@unibas.ch>"]
 
+[tool.poetry.scripts]
+ylva = 'ylva.bin.ylva:main'
+
 [tool.poetry.dependencies]
 python = "^3.10"
 
