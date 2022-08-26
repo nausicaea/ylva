@@ -1,5 +1,6 @@
 from . import start
 
+
 @start
 async def main() -> None:
     pass

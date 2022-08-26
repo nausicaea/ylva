@@ -9,9 +9,18 @@ ylva = 'ylva.bin.ylva:main'
 
 [tool.poetry.dependencies]
 python = "^3.10"
+mt-940 = "^4.26.0"
+certifi = "^14.05.14"
+six = "^1.10"
+python_dateutil = "^2.5.3"
+# setuptools = "^21.0.0"
+urllib3 = "^1.15.1"
+aiohttp = "^3.8.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
+pytest = "^6"
+pytest-cov = "^2.5.1"
+randomize = "^0.13"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
