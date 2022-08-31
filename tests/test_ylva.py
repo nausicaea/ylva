@@ -6,6 +6,8 @@ from ylva.ynab.accounts.list_accounts import Accounts, ListAccounts
 from ylva.ynab.budgets.budgets import Budgets
 from ylva.ynab.budgets.list_budgets import ListBudgets
 from ylva.ynab.payees.list_payees import ListPayees, Payees
+from ylva.ynab.transactions.list_transactions import (ListTransactions,
+                                                      Transactions)
 
 
 def test_version():
@@ -32,3 +34,11 @@ async def test_list_accounts(
 ) -> None:
     data, _ = await ynab_api_client.get(ListAccounts(ynab_default_budget))
     assert isinstance(data, Accounts)
+
+
+@pytest.mark.asyncio
+async def test_list_transactions(
+    ynab_api_client: ApiClient, ynab_default_budget: str
+) -> None:
+    data, _ = await ynab_api_client.get(ListTransactions(ynab_default_budget))
+    assert isinstance(data, Transactions)
