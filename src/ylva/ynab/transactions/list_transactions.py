@@ -18,7 +18,7 @@ class TransactionsList(DataClassDictMixin):
 
 
 @dataclass
-class Transactions(ResponseWrapper[TransactionsList], DataClassJSONMixin):
+class TransactionsResponse(ResponseWrapper[TransactionsList], DataClassJSONMixin):
     pass
 
 
@@ -70,8 +70,8 @@ class ListTransactions(ApiEndpoint):
     def path(self) -> str:
         return f"/v1/budgets/{self.budget_id}/transactions"
 
-    def response_data_type(self) -> Type[Transactions]:
-        return Transactions
+    def response_data_type(self) -> Type[TransactionsResponse]:
+        return TransactionsResponse
 
     def request_data_type(self) -> Type[DataClassJSONMixin]:
         raise NotImplementedError()

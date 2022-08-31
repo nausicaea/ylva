@@ -16,7 +16,7 @@ class PayeesList(DataClassDictMixin):
 
 
 @dataclass
-class Payees(ResponseWrapper[PayeesList], DataClassJSONMixin):
+class PayeesResponse(ResponseWrapper[PayeesList], DataClassJSONMixin):
     pass
 
 
@@ -45,8 +45,8 @@ class ListPayees(ApiEndpoint):
     def path(self) -> str:
         return f"/v1/budgets/{self.budget_id}/payees"
 
-    def response_data_type(self) -> Type[Payees]:
-        return Payees
+    def response_data_type(self) -> Type[PayeesResponse]:
+        return PayeesResponse
 
     def request_data_type(self) -> Type[DataClassJSONMixin]:
         raise NotImplementedError()

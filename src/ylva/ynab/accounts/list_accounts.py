@@ -16,7 +16,7 @@ class AccountsList(DataClassDictMixin):
 
 
 @dataclass
-class Accounts(ResponseWrapper[AccountsList], DataClassJSONMixin):
+class AccountsResponse(ResponseWrapper[AccountsList], DataClassJSONMixin):
     pass
 
 
@@ -45,8 +45,8 @@ class ListAccounts(ApiEndpoint):
     def path(self) -> str:
         return f"/v1/budgets/{self.budget_id}/accounts"
 
-    def response_data_type(self) -> Type[Accounts]:
-        return Accounts
+    def response_data_type(self) -> Type[AccountsResponse]:
+        return AccountsResponse
 
     def request_data_type(self) -> Type[DataClassJSONMixin]:
         raise NotImplementedError()

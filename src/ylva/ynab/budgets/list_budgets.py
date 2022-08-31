@@ -16,7 +16,7 @@ class BudgetsList(DataClassDictMixin):
 
 
 @dataclass
-class Budgets(ResponseWrapper[BudgetsList], DataClassJSONMixin):
+class BudgetsResponse(ResponseWrapper[BudgetsList], DataClassJSONMixin):
     pass
 
 
@@ -42,8 +42,8 @@ class ListBudgets(ApiEndpoint):
     def path(self) -> str:
         return "/v1/budgets"
 
-    def response_data_type(self) -> Type[Budgets]:
-        return Budgets
+    def response_data_type(self) -> Type[BudgetsResponse]:
+        return BudgetsResponse
 
     def request_data_type(self) -> Type[DataClassJSONMixin]:
         raise NotImplementedError()

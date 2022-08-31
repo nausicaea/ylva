@@ -9,7 +9,7 @@ from ..model.transaction import Transaction as Transaction_
 
 
 @dataclass
-class Transaction(ResponseWrapper[Transaction_], DataClassJSONMixin):
+class TransactionResponse(ResponseWrapper[Transaction_], DataClassJSONMixin):
     pass
 
 
@@ -24,8 +24,8 @@ class UpdateTransaction(ApiEndpoint):
     def path(self) -> str:
         return f"/v1/budgets/{self.budget_id}/transactions/{self.transaction_id}"
 
-    def response_data_type(self) -> Type[Transaction]:
-        return Transaction
+    def response_data_type(self) -> Type[TransactionResponse]:
+        return TransactionResponse
 
-    def request_data_type(self) -> Type[Transaction]:
-        return Transaction
+    def request_data_type(self) -> Type[TransactionResponse]:
+        return TransactionResponse

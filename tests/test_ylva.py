@@ -2,12 +2,12 @@ import pytest
 from reidun.client import ApiClient
 
 from ylva import __version__
-from ylva.ynab.accounts.list_accounts import Accounts, ListAccounts
-from ylva.ynab.budgets.list_budgets import Budgets, ListBudgets
-from ylva.ynab.payees.list_payees import ListPayees, Payees
+from ylva.ynab.accounts.list_accounts import AccountsResponse, ListAccounts
+from ylva.ynab.budgets.list_budgets import BudgetsResponse, ListBudgets
+from ylva.ynab.payees.list_payees import ListPayees, PayeesResponse
 from ylva.ynab.transactions.list_transactions import (ListTransactions,
-                                                      Transactions)
-from ylva.ynab.transactions.update_transaction import (Transaction,
+                                                      TransactionsResponse)
+from ylva.ynab.transactions.update_transaction import (TransactionResponse,
                                                        UpdateTransaction)
 
 
@@ -18,7 +18,7 @@ def test_version():
 @pytest.mark.asyncio
 async def test_list_budgets(ynab_api_client: ApiClient) -> None:
     data, _ = await ynab_api_client.get(ListBudgets())
-    assert isinstance(data, Budgets)
+    assert isinstance(data, BudgetsResponse)
 
 
 @pytest.mark.asyncio
@@ -26,7 +26,7 @@ async def test_list_payees(
     ynab_api_client: ApiClient, ynab_default_budget: str
 ) -> None:
     data, _ = await ynab_api_client.get(ListPayees(ynab_default_budget))
-    assert isinstance(data, Payees)
+    assert isinstance(data, PayeesResponse)
 
 
 @pytest.mark.asyncio
@@ -34,7 +34,7 @@ async def test_list_accounts(
     ynab_api_client: ApiClient, ynab_default_budget: str
 ) -> None:
     data, _ = await ynab_api_client.get(ListAccounts(ynab_default_budget))
-    assert isinstance(data, Accounts)
+    assert isinstance(data, AccountsResponse)
 
 
 @pytest.mark.asyncio
@@ -43,4 +43,4 @@ async def test_list_transactions(
 ) -> None:
     data, _ = await ynab_api_client.get(ListTransactions(ynab_default_budget))
     print(data.data.transactions[-1])
-    assert isinstance(data, Transactions)
+    assert isinstance(data, TransactionsResponse)
