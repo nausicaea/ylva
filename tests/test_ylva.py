@@ -2,6 +2,7 @@ import pytest
 from reidun.client import ApiClient
 
 from ylva import __version__
+from ylva.ynab.accounts.list_accounts import Accounts, ListAccounts
 from ylva.ynab.budgets.budgets import Budgets
 from ylva.ynab.budgets.list_budgets import ListBudgets
 from ylva.ynab.payees.list_payees import ListPayees, Payees
@@ -22,5 +23,12 @@ async def test_list_payees(
     ynab_api_client: ApiClient, ynab_default_budget: str
 ) -> None:
     data, _ = await ynab_api_client.get(ListPayees(ynab_default_budget))
-    print(data)
     assert isinstance(data, Payees)
+
+
+@pytest.mark.asyncio
+async def test_list_accounts(
+    ynab_api_client: ApiClient, ynab_default_budget: str
+) -> None:
+    data, _ = await ynab_api_client.get(ListAccounts(ynab_default_budget))
+    assert isinstance(data, Accounts)
