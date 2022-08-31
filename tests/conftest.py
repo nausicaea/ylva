@@ -22,13 +22,20 @@ def ynab_api_url() -> str:
     return "https://api.youneedabudget.com"
 
 
+@pytest.fixture(scope="session")
+def ynab_personal_api_token_id() -> str:
+    return "2vwn7fnsrhyzdb4w37dlmnrt4y"
+
+
 @pytest_asyncio.fixture(scope="session")
-async def ynab_personal_api_token(event_loop: AbstractEventLoop) -> str:
+async def ynab_personal_api_token(
+    event_loop: AbstractEventLoop, ynab_personal_api_token_id: str
+) -> str:
     proc = await asyncio.subprocess.create_subprocess_exec(
         "op",
         "item",
         "get",
-        "2vwn7fnsrhyzdb4w37dlmnrt4y",
+        ynab_personal_api_token_id,
         "--fields",
         "label=credential",
         stdout=asyncio.subprocess.PIPE,
