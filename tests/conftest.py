@@ -9,6 +9,21 @@ from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
 
+async def one_password_get_item(item_id: str, field_name: str) -> str:
+    proc = await asyncio.subprocess.create_subprocess_exec(
+        "op",
+        "item",
+        "get",
+        item_id,
+        "--fields",
+        f"label={field_name}",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, _ = await proc.communicate()
+    return stdout.strip().decode("utf-8")
+
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[AbstractEventLoop, None, None]:
     policy = asyncio.get_event_loop_policy()
@@ -18,39 +33,24 @@ def event_loop() -> Generator[AbstractEventLoop, None, None]:
 
 
 @pytest.fixture(scope="session")
-def ynab_api_url() -> str:
-    return "https://api.youneedabudget.com"
-
-
-@pytest.fixture(scope="session")
-def ynab_personal_api_token_id() -> str:
+def ynab_api_token_id() -> str:
     return "2vwn7fnsrhyzdb4w37dlmnrt4y"
 
 
 @pytest_asyncio.fixture(scope="session")
-async def ynab_personal_api_token(
-    event_loop: AbstractEventLoop, ynab_personal_api_token_id: str
-) -> str:
-    proc = await asyncio.subprocess.create_subprocess_exec(
-        "op",
-        "item",
-        "get",
-        ynab_personal_api_token_id,
-        "--fields",
-        "label=credential",
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    stdout, _ = await proc.communicate()
+async def ynab_api_url(ynab_api_token_id: str) -> str:
+    host_name: str = await one_password_get_item(ynab_api_token_id, "hostname")
+    return f"https://{host_name}/"
 
-    return stdout.strip().decode("utf-8")
+
+@pytest_asyncio.fixture(scope="session")
+async def ynab_api_token(ynab_api_token_id: str) -> str:
+    return await one_password_get_item(ynab_api_token_id, "credential")
 
 
 @pytest_asyncio.fixture(scope="session")
 async def ynab_api_client(
-    ynab_api_url: str, ynab_personal_api_token: str
+    ynab_api_url: str, ynab_api_token: str
 ) -> AsyncGenerator[ApiClient, None]:
-    async with ApiClient(
-        ynab_api_url, auth=BearerAuth(ynab_personal_api_token)
-    ) as client:
+    async with ApiClient(ynab_api_url, auth=BearerAuth(ynab_api_token)) as client:
         yield client
