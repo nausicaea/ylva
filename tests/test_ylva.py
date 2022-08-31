@@ -3,11 +3,12 @@ from reidun.client import ApiClient
 
 from ylva import __version__
 from ylva.ynab.accounts.list_accounts import Accounts, ListAccounts
-from ylva.ynab.budgets.budgets import Budgets
-from ylva.ynab.budgets.list_budgets import ListBudgets
+from ylva.ynab.budgets.list_budgets import Budgets, ListBudgets
 from ylva.ynab.payees.list_payees import ListPayees, Payees
 from ylva.ynab.transactions.list_transactions import (ListTransactions,
                                                       Transactions)
+from ylva.ynab.transactions.update_transaction import (Transaction,
+                                                       UpdateTransaction)
 
 
 def test_version():
@@ -41,4 +42,5 @@ async def test_list_transactions(
     ynab_api_client: ApiClient, ynab_default_budget: str
 ) -> None:
     data, _ = await ynab_api_client.get(ListTransactions(ynab_default_budget))
+    print(data.data.transactions[-1])
     assert isinstance(data, Transactions)

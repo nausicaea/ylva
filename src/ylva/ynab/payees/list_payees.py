@@ -1,25 +1,17 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Type
 
-from mashumaro import DataClassDictMixin, field_options
-from mashumaro.helper import field_options
+from mashumaro import DataClassDictMixin
 from mashumaro.mixins.json import DataClassJSONMixin
 from reidun.endpoint import ApiEndpoint, ParamsBuilder
 
-from ylva.ynab import ResponseWrapper
-
-
-@dataclass
-class PayeesEntry(DataClassDictMixin):
-    id_: str = field(metadata=field_options(alias="id"))
-    name: str
-    transfer_account_id: str
-    deleted: bool
+from .. import ResponseWrapper
+from ..model.payee import Payee
 
 
 @dataclass
 class PayeesList(DataClassDictMixin):
-    payees: List[PayeesEntry]
+    payees: List[Payee]
     server_knowledge: int
 
 

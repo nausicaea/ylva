@@ -1,34 +1,17 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Type
 
-from mashumaro import DataClassDictMixin, field_options
-from mashumaro.helper import field_options
+from mashumaro import DataClassDictMixin
 from mashumaro.mixins.json import DataClassJSONMixin
 from reidun.endpoint import ApiEndpoint, ParamsBuilder
 
-from ylva.ynab import ResponseWrapper
-
-
-@dataclass
-class AccountsEntry(DataClassDictMixin):
-    id_: str = field(metadata=field_options(alias="id"))
-    name: str
-    type_: str = field(metadata=field_options(alias="type"))
-    on_budget: bool
-    closed: bool
-    note: str
-    balance: float
-    cleared_balance: float
-    uncleared_balance: float
-    transfer_payee_id: str
-    direct_import_linked: bool
-    direct_import_in_error: bool
-    deleted: bool
+from .. import ResponseWrapper
+from ..model.account import Account
 
 
 @dataclass
 class AccountsList(DataClassDictMixin):
-    accounts: List[AccountsEntry]
+    accounts: List[Account]
     server_knowledge: int
 
 

@@ -1,57 +1,19 @@
 from dataclasses import dataclass, field
 from datetime import date
-from enum import Enum, auto
+from enum import Enum
 from typing import Dict, List, Optional, Type
 
-from mashumaro import DataClassDictMixin, field_options
-from mashumaro.helper import field_options
+from mashumaro import DataClassDictMixin
 from mashumaro.mixins.json import DataClassJSONMixin
 from reidun.endpoint import ApiEndpoint, ParamsBuilder
 
-from ylva.ynab import ResponseWrapper
-
-
-@dataclass
-class SubransactionEntry(DataClassDictMixin):
-    id_: str = field(metadata=field_options(alias="id"))
-    transaction_id: str
-    amount: float
-    memo: str
-    payee_id: str
-    payee_name: str
-    category_id: str
-    category_name: str
-    transfer_account_id: str
-    transfer_transaction_id: str
-    deleted: bool
-
-
-@dataclass
-class TransactionsEntry(DataClassDictMixin):
-    id_: str = field(metadata=field_options(alias="id"))
-    date: date
-    amount: float
-    memo: str
-    cleared: str
-    approved: bool
-    flag_color: str
-    account_id: str
-    payee_id: str
-    category_id: str
-    transfer_account_id: str
-    transfer_transaction_id: str
-    matched_transaction_id: str
-    import_id: str
-    deleted: bool
-    account_name: str
-    payee_name: str
-    category_name: str
-    subtransactions: List[SubransactionEntry]
+from .. import ResponseWrapper
+from ..model.transaction import Transaction
 
 
 @dataclass
 class TransactionsList(DataClassDictMixin):
-    transactions: List[TransactionsEntry]
+    transactions: List[Transaction]
     server_knowledge: int
 
 
@@ -61,16 +23,8 @@ class Transactions(ResponseWrapper[TransactionsList], DataClassJSONMixin):
 
 
 class TransactionType(Enum):
-    UNCATEGORIZED = auto()
-    UNAPPROVED = auto()
-
-    def to_str(self) -> str:
-        if self is TransactionType.UNCATEGORIZED:
-            return "uncategorized"
-        elif self is TransactionType.UNAPPROVED:
-            return "unapproved"
-        else:
-            raise ValueError(f"Unrecognized variant of TransactionType: {self}")
+    UNCATEGORIZED = "uncategorized"
+    UNAPPROVED = "unapproved"
 
 
 @dataclass
@@ -98,7 +52,7 @@ class Params(ParamsBuilder):
         if self.since_date is not None:
             params["since_date"] = self.since_date.isoformat()
         if self.type_ is not None:
-            params["type"] = self.type_.to_str()
+            params["type"] = self.type_.value
 
         if len(params) == 0:
             return None

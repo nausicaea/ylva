@@ -1,10 +1,23 @@
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Type
+from typing import Dict, List, Optional, Type
 
+from mashumaro import DataClassDictMixin
 from mashumaro.mixins.json import DataClassJSONMixin
 from reidun.endpoint import ApiEndpoint, ParamsBuilder
 
-from .budgets import Budgets
+from .. import ResponseWrapper
+from ..model.budget import Budget
+
+
+@dataclass
+class BudgetsList(DataClassDictMixin):
+    budgets: List[Budget]
+    default_budget: Optional[Budget]
+
+
+@dataclass
+class Budgets(ResponseWrapper[BudgetsList], DataClassJSONMixin):
+    pass
 
 
 @dataclass

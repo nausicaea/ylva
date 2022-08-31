@@ -4,7 +4,7 @@ from mashumaro import DataClassDictMixin, field_options
 
 
 @dataclass
-class BudgetAccountsEntry(DataClassDictMixin):
+class Account(DataClassDictMixin):
     id_: str = field(metadata=field_options(alias="id"))
     name: str
     type_: str = field(metadata=field_options(alias="type"))
