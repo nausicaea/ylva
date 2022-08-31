@@ -1,11 +1,9 @@
 import pytest
-import reidun.client
-from reidun.auth_method import BearerAuth
+from reidun.client import ApiClient
 
 from ylva import __version__
+from ylva.ynab.budgets.budgets import Budgets
 from ylva.ynab.budgets.list_budgets import ListBudgets
-
-_TOKEN: str = "***REMOVED***"
 
 
 def test_version():
@@ -13,9 +11,15 @@ def test_version():
 
 
 @pytest.mark.asyncio
-async def test_list_budgets() -> None:
-    async with reidun.client.ApiClient(
-        "https://api.youneedabudget.com", auth=BearerAuth(_TOKEN)
-    ) as client:
-        data, _ = await client.get(ListBudgets())
-        print(data)
+async def test_list_budgets(ynab_api_client: ApiClient) -> None:
+    data, _ = await ynab_api_client.get(ListBudgets())
+    assert isinstance(data, Budgets)
+
+
+# @pytest.mark.asyncio
+# async def test_list_payees(ynab_personal_api_token: str) -> None:
+#     async with reidun.client.ApiClient(
+#         "https://api.youneedabudget.com", auth=BearerAuth(ynab_personal_api_token)
+#     ) as client:
+#         data, _ = await client.get(ListPayees())
+#         print(data)
