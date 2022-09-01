@@ -1,2 +1,3 @@
-__version__ = '0.1.0'
+import importlib.metadata
 
+__version__ = importlib.metadata.version("ylva")
