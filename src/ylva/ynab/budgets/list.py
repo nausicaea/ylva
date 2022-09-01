@@ -36,7 +36,7 @@ class Params(ParamsBuilder):
 
 
 class ListBudgets(ApiEndpoint):
-    def params(self) -> ParamsBuilder:
+    def params(self) -> Params:
         return Params()
 
     def path(self) -> str:

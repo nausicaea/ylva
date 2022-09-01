@@ -3,6 +3,7 @@ from datetime import date
 from typing import List
 
 from mashumaro import DataClassDictMixin, field_options
+from mashumaro.mixins.json import DataClassJSONMixin
 
 from ylva.ynab.model.subtransaction import Subtransaction
 from ylva.ynab.model.transaction_status import TransactionStatus
@@ -12,7 +13,7 @@ from ylva.ynab.model.transaction_status import TransactionStatus
 class Transaction(DataClassDictMixin):
     id_: str = field(metadata=field_options(alias="id"))
     date: date
-    amount: float
+    amount: int
     memo: str
     cleared: TransactionStatus
     approved: bool

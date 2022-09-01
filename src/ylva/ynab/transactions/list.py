@@ -64,7 +64,7 @@ class Params(ParamsBuilder):
 class ListTransactions(ApiEndpoint):
     budget_id: str
 
-    def params(self) -> ParamsBuilder:
+    def params(self) -> Params:
         return Params()
 
     def path(self) -> str:
