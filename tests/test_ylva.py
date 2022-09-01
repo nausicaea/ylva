@@ -1,47 +1,21 @@
 import logging
-from dataclasses import dataclass, field
-from datetime import date
-from typing import List, Optional, cast
+from typing import List, cast
 
 import pytest
-from mashumaro import DataClassDictMixin, field_options
-from mashumaro.mixins.json import DataClassJSONMixin
 from reidun.client import ApiClient
 
 from ylva import __version__
 from ylva.ynab.accounts.list import AccountsResponse, ListAccounts
 from ylva.ynab.budgets.list import BudgetsResponse, ListBudgets
-from ylva.ynab.model.transaction import Transaction
+from ylva.ynab.model.save_transaction import SaveTransaction
 from ylva.ynab.model.transaction_status import TransactionStatus
 from ylva.ynab.payees.list import ListPayees, PayeesResponse
 from ylva.ynab.transactions.list import (ListTransactions,
                                          TransactionsResponse, TransactionType)
-from ylva.ynab.transactions.update import UpdateTransaction
+from ylva.ynab.transactions.update import (SaveTransactionWrapper,
+                                           UpdateTransaction)
 
 _LOG: logging.Logger = logging.getLogger(__name__)
-
-
-@dataclass
-class SaveTransaction(DataClassDictMixin):
-    account_id: str
-    date: date
-    amount: int
-    payee_id: Optional[str] = field(
-        default=None, metadata=field_options(serialization_strategy=ABCD)
-    )
-    payee_name: Optional[str] = field(default=None)
-    category_id: Optional[str] = field(default=None)
-    memo: Optional[str] = field(default=None)
-    cleared: Optional[TransactionStatus] = field(default=None)
-    approved: Optional[bool] = field(default=None)
-    flag_color: Optional[str] = field(default=None)
-    import_id: Optional[str] = field(default=None)
-    # subtransactions: Optional[List[SaveSubtransaction]]
-
-
-@dataclass
-class TransactionRequestData(DataClassJSONMixin):
-    transaction: SaveTransaction
 
 
 def test_version():
@@ -92,7 +66,7 @@ async def test_payee_matching(
     if transactions is None:
         return
 
-    update_queue: List[Transaction] = list()
+    update_queue: List[SaveTransaction] = list()
     for t in cast(TransactionsResponse, transactions).data.transactions:
         if t.transfer_transaction_id is not None:
             _LOG.debug(
@@ -127,17 +101,24 @@ async def test_payee_matching(
                 _LOG.info(
                     f"MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was matched to payee {payee.name}"
                 )
-                t.payee_id = payee.id_
-                t.payee_name = payee.name
-                update_queue.append(t)
+                st = SaveTransaction(
+                    t.id_,
+                    t.account_id,
+                    t.date,
+                    t.amount,
+                    payee_id=payee.id_,
+                    payee_name=payee.name,
+                )
+                update_queue.append(st)
         else:
             _LOG.warning(
                 f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was not matched to a payee"
             )
 
-        for t in update_queue:
-            tw = TransactionRequestData(t)
-            data, _ = await ynab_api_client.put(
-                UpdateTransaction(ynab_default_budget, t.id_), data=tw
-            )
-            pass
+    for t in update_queue:
+        tw = SaveTransactionWrapper(t)
+        data = await ynab_api_client.put(
+            UpdateTransaction(ynab_default_budget, t.id_), tw
+        )
+        print(data)
+        break

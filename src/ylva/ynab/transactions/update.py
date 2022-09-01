@@ -1,16 +1,28 @@
 from dataclasses import dataclass
 from typing import Type
 
+from mashumaro import DataClassDictMixin
 from mashumaro.mixins.json import DataClassJSONMixin
 from reidun.endpoint import ApiEndpoint, ParamsBuilder
 
 from .. import ResponseWrapper
-from ..model.transaction import Transaction as Transaction_
+from ..model.save_transaction import SaveTransaction
+from ..model.transaction import Transaction
 
 
 @dataclass
-class TransactionResponse(ResponseWrapper[Transaction_], DataClassJSONMixin):
+class TransactionWrapper(DataClassDictMixin):
+    transaction: Transaction
+
+
+@dataclass
+class TransactionResponse(ResponseWrapper[TransactionWrapper], DataClassJSONMixin):
     pass
+
+
+@dataclass
+class SaveTransactionWrapper(DataClassJSONMixin):
+    transaction: SaveTransaction
 
 
 @dataclass
@@ -27,5 +39,5 @@ class UpdateTransaction(ApiEndpoint):
     def response_data_type(self) -> Type[TransactionResponse]:
         return TransactionResponse
 
-    def request_data_type(self) -> Type[TransactionResponse]:
-        return TransactionResponse
+    def request_data_type(self) -> Type[SaveTransactionWrapper]:
+        return SaveTransactionWrapper
