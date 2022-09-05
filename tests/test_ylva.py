@@ -7,6 +7,7 @@ from reidun.client import ApiClient
 from ylva import __version__
 from ylva.ynab.accounts.list import AccountsResponse, ListAccounts
 from ylva.ynab.budgets.list import BudgetsResponse, ListBudgets
+from ylva.ynab.categories.list import ListCategories
 from ylva.ynab.model.save_transaction import SaveTransaction
 from ylva.ynab.model.transaction_status import TransactionStatus
 from ylva.ynab.payees.list import ListPayees, PayeesResponse
@@ -53,11 +54,11 @@ async def test_list_transactions(
 
 
 @pytest.mark.asyncio
-async def test_payee_matching(
+async def test_category_matching(
     ynab_api_client: ApiClient, ynab_default_budget: str
 ) -> None:
-    payees, _ = await ynab_api_client.get(ListPayees(ynab_default_budget))
-    if payees is None:
+    categories, _ = await ynab_api_client.get(ListCategories(ynab_default_budget))
+    if categories is None:
         return
 
     lt = ListTransactions(ynab_default_budget)
@@ -83,42 +84,15 @@ async def test_payee_matching(
                 f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has been approved"
             )
             continue
-        elif t.payee_id is not None or t.category_id is not None:
+        elif t.category_id is not None:
             _LOG.debug(
-                f"SKIPPING: Transaction {t.id_}  ({t.date} - {t.amount}) has an assigned payee and/or category"
+                f"SKIPPING: Transaction {t.id_}  ({t.date} - {t.amount}) has an assigned category"
             )
             continue
-        elif t.memo is None:
+        elif t.payee_id is None:
             _LOG.warning(
-                f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no memo, so I cannot find the appropriate payee and category"
+                f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no payee, so I cannot find the appropriate category"
             )
             continue
 
-        for payee in cast(PayeesResponse, payees).data.payees:
-            if payee.deleted:
-                continue
-            elif payee.name in t.memo:
-                _LOG.info(
-                    f"MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was matched to payee {payee.name}"
-                )
-                st = SaveTransaction(
-                    t.id_,
-                    t.account_id,
-                    t.date,
-                    t.amount,
-                    payee_id=payee.id_,
-                    payee_name=payee.name,
-                )
-                update_queue.append(st)
-        else:
-            _LOG.warning(
-                f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was not matched to a payee"
-            )
-
-    for t in update_queue:
-        tw = SaveTransactionWrapper(t)
-        data = await ynab_api_client.put(
-            UpdateTransaction(ynab_default_budget, t.id_), tw
-        )
-        print(data)
-        break
+        monthweek = t.date.day // 7

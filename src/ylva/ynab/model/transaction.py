@@ -3,10 +3,9 @@ from datetime import date
 from typing import List
 
 from mashumaro import DataClassDictMixin, field_options
-from mashumaro.mixins.json import DataClassJSONMixin
 
-from ylva.ynab.model.subtransaction import Subtransaction
-from ylva.ynab.model.transaction_status import TransactionStatus
+from .subtransaction import Subtransaction
+from .transaction_status import TransactionStatus
 
 
 @dataclass

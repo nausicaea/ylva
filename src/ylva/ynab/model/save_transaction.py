@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Set
 
 from mashumaro import DataClassDictMixin
 
-from ylva.ynab.model.transaction_status import TransactionStatus
+from .transaction_status import TransactionStatus
 
 
 @dataclass
