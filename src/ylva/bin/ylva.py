@@ -18,6 +18,12 @@ from ..ynab.transactions.update import (SaveTransactionWrapper,
                                         UpdateTransaction)
 from . import DEFAULT_CONFIG_FILE, start
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
+
 _LOG: logging.Logger = logging.getLogger(f"{__package__}.ylva")
 
 
@@ -28,7 +34,8 @@ async def get_api_token(config: Config) -> str:
         api_token: str = await one_password_get_item(config.op_item_id, "credential")
     else:
         raise ValueError(
-            "No API authentication token is defined: you must set one of the config parameters 'api_token' or 'op_item_id'"
+            "No API authentication token is defined: you must set one of the config parameters 'api_token' or "
+            "'op_item_id' "
         )
 
     return api_token
@@ -74,7 +81,7 @@ async def map_iti(
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
-    rate_limit: float = config.rate_limit
+    rate_limit: Optional[float] = config.rate_limit
     api_url: str = config.api_url
     api_token: str = await get_api_token(config)
     budget_id: str = config.budget_id
@@ -113,12 +120,14 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
                 continue
             elif t.memo is None:
                 _LOG.warning(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no memo, so I cannot find the appropriate payee"
+                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no memo, so I cannot find the "
+                    "appropriate payee "
                 )
                 continue
             elif len(t.memo) > 200:
                 _LOG.warning(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has a memo over 200 characters. YNAB will complain when updating this transaction"
+                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has a memo over 200 characters. YNAB will "
+                    "complain when updating this transaction "
                 )
                 continue
 
@@ -155,7 +164,7 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
 
 async def assign_categories(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
-    rate_limit: float = config.rate_limit
+    rate_limit: Optional[float] = config.rate_limit
     api_url: str = config.api_url
     api_token: str = await get_api_token(config)
     budget_id: str = config.budget_id
@@ -194,7 +203,14 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
                 continue
             elif t.payee_id is None:
                 _LOG.warning(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no payee, so I cannot find the appropriate category"
+                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no payee, so I cannot find the "
+                    "appropriate category "
+                )
+                continue
+            elif t.memo is not None and len(t.memo) > 200:
+                _LOG.warning(
+                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has a memo over 200 characters. YNAB will "
+                    "complain when updating this transaction "
                 )
                 continue
 

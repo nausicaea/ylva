@@ -7,6 +7,9 @@ authors = ["Eleanor Young <eleanor.young@unibas.ch>"]
 [tool.poetry.scripts]
 ylva = 'ylva.bin.ylva:main'
 
+[tool.poetry.extras]
+progress = ["tqdm"]
+
 [tool.poetry.dependencies]
 python = "^3.10"
 mt-940 = "^4.26.0"
@@ -15,6 +18,7 @@ ingridr = {git = "git@gitlab.com:nausicaea/ingridr.git", branch = "main"}
 aiohttp = "^3.8.1"
 appdirs = "^1.4.4"
 mashumaro = {version = "^3.0.4", extras = ["yaml"]}
+tqdm = {version = "^4.64.1", optional = true}
 
 [tool.poetry.dev-dependencies]
 pytest = "^7"
