@@ -5,26 +5,21 @@ from typing import List, cast
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
-from ylva.config import Config
-from ylva.one_password import one_password_get_item
-from ylva.ynab.model.save_transaction import SaveTransaction
-from ylva.ynab.model.transaction_status import TransactionStatus
-from ylva.ynab.transactions.update import (SaveTransactionWrapper,
-                                           UpdateTransaction)
-
+from ..config import Config
+from ..one_password import one_password_get_item
+from ..ynab.model.save_transaction import SaveTransaction
+from ..ynab.model.transaction_status import TransactionStatus
 from ..ynab.payees.list import ListPayees, PayeesResponse
 from ..ynab.transactions.list import (ListTransactions, TransactionsResponse,
                                       TransactionType)
+from ..ynab.transactions.update import (SaveTransactionWrapper,
+                                        UpdateTransaction)
 from . import DEFAULT_CONFIG_FILE, start
 
 _LOG: logging.Logger = logging.getLogger(__name__)
 
 
-async def assign_payees(matches: Namespace, config: Config) -> None:
-    dry_run: bool = matches.dry_run
-    api_url: str = config.api_url
-    budget_id: str = config.budget_id
-
+async def get_api_token(config: Config) -> str:
     if config.api_token is not None:
         api_token: str = config.api_token
     elif config.op_item_id is not None:
@@ -34,8 +29,20 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
             "No API authentication token is defined: you must set one of the config parameters 'api_token' or 'op_item_id'"
         )
 
+    return api_token
+
+
+async def assign_payees(matches: Namespace, config: Config) -> None:
+    dry_run: bool = matches.dry_run
+    rate_limit: float = config.rate_limit
+    api_url: str = config.api_url
+    api_token: str = await get_api_token(config)
+    budget_id: str = config.budget_id
+
     async with ApiClient(
-        api_url, auth=BearerAuth(api_token), rate_limit=200 / 3600
+        api_url,
+        auth=BearerAuth(api_token),
+        rate_limit=rate_limit,
     ) as client:
         payees, _ = await client.get(ListPayees(budget_id))
         if payees is None:

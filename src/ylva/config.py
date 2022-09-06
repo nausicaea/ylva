@@ -17,6 +17,7 @@ class Config(DataClassYAMLMixin):
     budget_id: str = field(default="default")
     api_token: Optional[str] = field(default=None)
     op_item_id: Optional[str] = field(default=None)
+    rate_limit: float = field(default=200 / 3600)
 
     def save(self, dst: Path) -> None:
         if dst.suffix not in YML_SUFFIXES:
