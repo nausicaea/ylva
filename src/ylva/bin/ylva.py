@@ -243,6 +243,10 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
                 await client.put(UpdateTransaction(budget_id, t.id_), tw)
 
 
+async def approve(matches: Namespace, config: Config) -> None:
+    raise NotImplementedError()
+
+
 @start
 async def main() -> None:
     parser = ArgumentParser(prog="ylva")
@@ -257,6 +261,24 @@ async def main() -> None:
         metavar="action",
         description="Choose the budget action",
         help="Choose the budget action",
+    )
+    approve_parser = sub_parsers.add_parser("approve")
+    approve_parser.set_defaults(func=approve)
+    approve_parser.add_argument(
+        "-s",
+        "--ignore-cleared",
+        action="store_true",
+        help="If set, approve transactions even if they haven't been cleared",
+    )
+    approve_parser.add_argument(
+        "--ignore-category",
+        action="store_true",
+        help="If set, approve transactions even if they haven't been categorized",
+    )
+    approve_parser.add_argument(
+        "--ignore-payee",
+        action="store_true",
+        help="If set, approve transactions even if they haven't been assigned a payee",
     )
     assign_parser = sub_parsers.add_parser("assign")
     assign_sub_parsers = assign_parser.add_subparsers(
