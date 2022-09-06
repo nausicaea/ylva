@@ -18,41 +18,39 @@ class TFilter(Flag):
 
 
 def predicate_transaction(t: Transaction, f: TFilter) -> bool:
-    tracker: bool = True
-
     if TFilter.TRANSFER in f:
-        v = t.transfer_transaction_id is not None
-        tracker &= v
-        _LOG.debug(f"Transaction {t.id_} is a transfer: {v}")
+        if t.transfer_transaction_id is None:
+            return False
     else:
-        tracker &= t.transfer_transaction_id is None
+        if t.transfer_transaction_id is not None:
+            return False
 
     if TFilter.RECONCILED in f:
-        v = t.cleared is TransactionStatus.RECONCILED
-        tracker &= v
-        _LOG.debug(f"Transaction {t.id_} is reconciled: {v}")
+        if t.cleared is not TransactionStatus.RECONCILED:
+            return False
     else:
-        tracker &= t.cleared is not TransactionStatus.RECONCILED
+        if t.cleared is TransactionStatus.RECONCILED:
+            return False
 
     if TFilter.ASSIGNED_PAYEE in f:
-        v = t.payee_id is not None
-        tracker &= v
-        _LOG.debug(f"Transaction {t.id_} has a payee: {v}")
+        if t.payee_id is None:
+            return False
     else:
-        tracker &= t.payee_id is None
+        if t.payee_id is not None:
+            return False
 
     if TFilter.ASSIGNED_CATEGORY in f:
-        v = t.category_id is not None
-        tracker &= v
-        _LOG.debug(f"Transaction {t.id_} has a category: {v}")
+        if t.category_id is None:
+            return False
     else:
-        tracker &= t.category_id is None
+        if t.category_id is not None:
+            return False
 
     if TFilter.ASSIGNED_MEMO in f:
-        v = t.memo is not None and len(t.memo) <= 200
-        tracker &= v
-        _LOG.debug(f"Transaction {t.id_} has a memo: {v}")
+        if t.memo is None or len(t.memo) > 200:
+            return False
     else:
-        tracker &= t.memo is None
+        if t.memo is not None:
+            return False
 
-    return tracker
+    return True
