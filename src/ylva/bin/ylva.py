@@ -5,6 +5,8 @@ from typing import List, cast
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
+from ylva.config import Config
+from ylva.one_password import one_password_get_item
 from ylva.ynab.model.save_transaction import SaveTransaction
 from ylva.ynab.model.transaction_status import TransactionStatus
 from ylva.ynab.transactions.update import (SaveTransactionWrapper,
@@ -13,18 +15,28 @@ from ylva.ynab.transactions.update import (SaveTransactionWrapper,
 from ..ynab.payees.list import ListPayees, PayeesResponse
 from ..ynab.transactions.list import (ListTransactions, TransactionsResponse,
                                       TransactionType)
-from . import start
+from . import DEFAULT_CONFIG_FILE, start
 
 _LOG: logging.Logger = logging.getLogger(__name__)
 
 
-async def assign_payees(matches: Namespace) -> None:
+async def assign_payees(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
-    api_url: str = matches.api_url
-    api_token: str = matches.api_token
-    budget_id: str = matches.budget
+    api_url: str = config.api_url
+    budget_id: str = config.budget_id
 
-    async with ApiClient(api_url, auth=BearerAuth(api_token)) as client:
+    if config.api_token is not None:
+        api_token: str = config.api_token
+    elif config.op_item_id is not None:
+        api_token: str = await one_password_get_item(config.op_item_id, "credential")
+    else:
+        raise ValueError(
+            "No API authentication token is defined: you must set one of the config parameters 'api_token' or 'op_item_id'"
+        )
+
+    async with ApiClient(
+        api_url, auth=BearerAuth(api_token), rate_limit=200 / 3600
+    ) as client:
         payees, _ = await client.get(ListPayees(budget_id))
         if payees is None:
             return
@@ -94,7 +106,7 @@ async def assign_payees(matches: Namespace) -> None:
                 await client.put(UpdateTransaction(budget_id, t.id_), tw)
 
 
-async def assign_categories(matches: Namespace) -> None:
+async def assign_categories(matches: Namespace, config: Config) -> None:
     raise NotImplementedError()
 
 
@@ -106,23 +118,21 @@ async def main() -> None:
         "--dry-run",
         action="store_true",
     )
-    sub_parsers = parser.add_subparsers(required=True, dest="root")
+    sub_parsers = parser.add_subparsers(
+        required=True,
+        dest="root",
+        metavar="action",
+        description="Choose the budget action",
+        help="Choose the budget action",
+    )
     assign_parser = sub_parsers.add_parser("assign")
-    assign_parser.add_argument(
-        "-b",
-        "--budget",
-        default="default",
+    assign_sub_parsers = assign_parser.add_subparsers(
+        required=True,
+        dest="assign",
+        metavar="destination",
+        description="Choose the assignment destination",
+        help="Choose the assignment destination",
     )
-    assign_parser.add_argument(
-        "-a",
-        "--api-url",
-        default="https://api.youneedabudget.com/",
-    )
-    assign_parser.add_argument(
-        "-t",
-        "--api-token",
-    )
-    assign_sub_parsers = assign_parser.add_subparsers(required=True, dest="assign")
     payees_parser = assign_sub_parsers.add_parser("payees")
     payees_parser.set_defaults(func=assign_payees)
     categories_parser = assign_sub_parsers.add_parser("categories")
@@ -131,7 +141,12 @@ async def main() -> None:
 
     logging.basicConfig(level=logging.DEBUG)
 
-    await matches.func(matches)
+    if not DEFAULT_CONFIG_FILE.exists():
+        config = Config.create(DEFAULT_CONFIG_FILE)
+    else:
+        config = Config.load(DEFAULT_CONFIG_FILE)
+
+    await matches.func(matches, config)
 
 
 if __name__ == "__main__":

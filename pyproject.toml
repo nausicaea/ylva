@@ -10,8 +10,10 @@ ylva = 'ylva.bin.ylva:main'
 [tool.poetry.dependencies]
 python = "^3.10"
 mt-940 = "^4.26.0"
-reidun = { git = "git@gitlab.com:nausicaea/reidun.git", branch = "main" }
+reidun = {git = "git@gitlab.com:nausicaea/reidun.git", branch = "main", extras = ["cache"]}
 aiohttp = "^3.8.1"
+appdirs = "^1.4.4"
+mashumaro = {version = "^3.0.4", extras = ["yaml"]}
 
 [tool.poetry.dev-dependencies]
 pytest = "^7"
