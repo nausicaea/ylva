@@ -1,12 +1,14 @@
 import logging
 from argparse import ArgumentParser, Namespace
-from typing import List, cast
+from typing import Dict, List, Optional, cast
 
+from ingridr import Iter
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
 from ..config import Config
 from ..one_password import one_password_get_item
+from ..ynab.categories.list import CategoriesResponse, ListCategories
 from ..ynab.model.save_transaction import SaveTransaction
 from ..ynab.model.transaction_status import TransactionStatus
 from ..ynab.payees.list import ListPayees, PayeesResponse
@@ -30,6 +32,41 @@ async def get_api_token(config: Config) -> str:
         )
 
     return api_token
+
+
+async def map_iti(
+    client: ApiClient, budget_id: str, ntn: Dict[str, str]
+) -> Dict[str, str]:
+    payees, _ = await client.get(ListPayees(budget_id))
+    if payees is None:
+        _LOG.warning(f"Budget {budget_id} has no payees")
+        return dict()
+    payees = cast(PayeesResponse, payees)
+
+    categories, _ = await client.get(ListCategories(budget_id))
+    if categories is None:
+        _LOG.warning(f"Budget {budget_id} has no categories")
+        return dict()
+    categories = cast(CategoriesResponse, categories)
+
+    for pn, cn in ntn.items():
+        pi = (
+            Iter(payees.data.payees)
+            .filter(lambda e: e.name == pn)
+            .map(lambda e: e.id_)
+            .next()
+        )
+
+        ci = (
+            Iter(categories.data.category_groups)
+            .map(lambda e: e.categories)
+            .flatten()
+            .filter(lambda e: e.name == cn)
+            .map(lambda e: e.id_)
+            .next()
+        )
+
+    raise NotImplementedError()
 
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
