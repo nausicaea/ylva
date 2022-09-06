@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import date
-from typing import List
+from typing import List, Optional
 
 from mashumaro import DataClassDictMixin, field_options
 
@@ -13,19 +13,19 @@ class Transaction(DataClassDictMixin):
     id_: str = field(metadata=field_options(alias="id"))
     date: date
     amount: int
-    memo: str
+    memo: Optional[str]
     cleared: TransactionStatus
     approved: bool
     flag_color: str
     account_id: str
-    payee_id: str
-    category_id: str
-    transfer_account_id: str
-    transfer_transaction_id: str
-    matched_transaction_id: str
-    import_id: str
+    payee_id: Optional[str]
+    category_id: Optional[str]
+    transfer_account_id: Optional[str]
+    transfer_transaction_id: Optional[str]
+    matched_transaction_id: Optional[str]
+    import_id: Optional[str]
     deleted: bool
     account_name: str
-    payee_name: str
-    category_name: str
+    payee_name: Optional[str]
+    category_name: Optional[str]
     subtransactions: List[Subtransaction]

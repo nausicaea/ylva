@@ -8,6 +8,7 @@ from reidun.client import ApiClient
 
 from ..config import Config
 from ..one_password import one_password_get_item
+from ..transaction_filter import TFilter, predicate_transaction
 from ..ynab.categories.list import CategoriesResponse, ListCategories
 from ..ynab.model.save_transaction import SaveTransaction
 from ..ynab.model.transaction_status import TransactionStatus
@@ -17,12 +18,6 @@ from ..ynab.transactions.list import (ListTransactions, TransactionsResponse,
 from ..ynab.transactions.update import (SaveTransactionWrapper,
                                         UpdateTransaction)
 from . import DEFAULT_CONFIG_FILE, start
-
-try:
-    from tqdm import tqdm
-except ImportError:
-    tqdm = None
-
 
 _LOG: logging.Logger = logging.getLogger(f"{__package__}.ylva")
 
@@ -39,6 +34,18 @@ async def get_api_token(config: Config) -> str:
         )
 
     return api_token
+
+
+async def list_transactions(
+    client: ApiClient, budget_id: str, t: TransactionType
+) -> Optional[TransactionsResponse]:
+    lt = ListTransactions(budget_id)
+    ltp = lt.params().with_type(t).build()
+    transactions, _ = await client.get(lt, params=ltp)
+    if transactions is not None:
+        return cast(TransactionsResponse, transactions)
+    else:
+        return None
 
 
 async def map_iti(
@@ -95,14 +102,18 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
         if payees is None:
             return
 
-        lt = ListTransactions(budget_id)
-        ltp = lt.params().with_type(TransactionType.UNCATEGORIZED).build()
-        transactions, _ = await client.get(lt, params=ltp)
+        transactions = await list_transactions(
+            client, budget_id, TransactionType.UNCATEGORIZED
+        )
         if transactions is None:
             return
 
         update_queue: List[SaveTransaction] = list()
-        for t in cast(TransactionsResponse, transactions).data.transactions:
+        f = TFilter.NONE | TFilter.ASSIGNED_MEMO
+        for t in transactions.data.transactions:
+            print(predicate_transaction(t, f))
+            # if not predicate_transaction(t, f):
+            #     continue
             if t.transfer_transaction_id is not None:
                 _LOG.debug(
                     f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) is a transfer"
@@ -178,14 +189,14 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
             client, budget_id, config.payment_to_category
         )
 
-        lt = ListTransactions(budget_id)
-        ltp = lt.params().with_type(TransactionType.UNCATEGORIZED).build()
-        transactions, _ = await client.get(lt, params=ltp)
+        transactions = await list_transactions(
+            client, budget_id, TransactionType.UNCATEGORIZED
+        )
         if transactions is None:
             return
 
         update_queue: List[SaveTransaction] = list()
-        for t in cast(TransactionsResponse, transactions).data.transactions:
+        for t in transactions.data.transactions:
             if t.transfer_transaction_id is not None:
                 _LOG.debug(
                     f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) is a transfer"
@@ -244,6 +255,27 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
 
 
 async def approve(matches: Namespace, config: Config) -> None:
+    dry_run: bool = matches.dry_run
+    rate_limit: Optional[float] = config.rate_limit
+    api_url: str = config.api_url
+    api_token: str = await get_api_token(config)
+    budget_id: str = config.budget_id
+
+    async with ApiClient(
+        api_url,
+        auth=BearerAuth(api_token),
+        rate_limit=rate_limit,
+    ) as client:
+        transactions = await list_transactions(
+            client, budget_id, TransactionType.UNCATEGORIZED
+        )
+        if transactions is None:
+            return
+
+        update_queue: List[SaveTransaction] = list()
+        for t in transactions.data.transactions:
+            pass
+
     raise NotImplementedError()
 
 
