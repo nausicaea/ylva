@@ -18,7 +18,7 @@ from ..ynab.transactions.update import (SaveTransactionWrapper,
                                         UpdateTransaction)
 from . import DEFAULT_CONFIG_FILE, start
 
-_LOG: logging.Logger = logging.getLogger(__name__)
+_LOG: logging.Logger = logging.getLogger(f"{__package__}.ylva")
 
 
 async def get_api_token(config: Config) -> str:
@@ -49,6 +49,7 @@ async def map_iti(
         return dict()
     categories = cast(CategoriesResponse, categories)
 
+    iti: Dict[str, str] = dict()
     for pn, cn in ntn.items():
         pi = (
             Iter(payees.data.payees)
@@ -65,8 +66,10 @@ async def map_iti(
             .map(lambda e: e.id_)
             .next()
         )
+        if pi is not None and ci is not None:
+            iti[pi] = ci
 
-    raise NotImplementedError()
+    return iti
 
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
@@ -151,7 +154,77 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
 
 
 async def assign_categories(matches: Namespace, config: Config) -> None:
-    raise NotImplementedError()
+    dry_run: bool = matches.dry_run
+    rate_limit: float = config.rate_limit
+    api_url: str = config.api_url
+    api_token: str = await get_api_token(config)
+    budget_id: str = config.budget_id
+
+    async with ApiClient(
+        api_url,
+        auth=BearerAuth(api_token),
+        rate_limit=rate_limit,
+    ) as client:
+        payment_to_category = await map_iti(
+            client, budget_id, config.payment_to_category
+        )
+
+        lt = ListTransactions(budget_id)
+        ltp = lt.params().with_type(TransactionType.UNCATEGORIZED).build()
+        transactions, _ = await client.get(lt, params=ltp)
+        if transactions is None:
+            return
+
+        update_queue: List[SaveTransaction] = list()
+        for t in cast(TransactionsResponse, transactions).data.transactions:
+            if t.transfer_transaction_id is not None:
+                _LOG.debug(
+                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) is a transfer"
+                )
+                continue
+            elif t.cleared is TransactionStatus.RECONCILED:
+                _LOG.debug(
+                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has been reconciled"
+                )
+                continue
+            elif t.category_id is not None:
+                _LOG.debug(
+                    f"SKIPPING: Transaction {t.id_}  ({t.date} - {t.amount}) has an assigned category"
+                )
+                continue
+            elif t.payee_id is None:
+                _LOG.warning(
+                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no payee, so I cannot find the appropriate category"
+                )
+                continue
+
+            if t.payee_id in payment_to_category.keys():
+                ci = payment_to_category[t.payee_id]
+
+                _LOG.info(
+                    f"MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was matched to category {ci}"
+                )
+                st = SaveTransaction(
+                    t.id_,
+                    t.account_id,
+                    t.date,
+                    t.amount,
+                    category_id=ci,
+                )
+                update_queue.append(st)
+            else:
+                _LOG.warning(
+                    f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was not matched to a category"
+                )
+
+        for t in update_queue:
+            tw = SaveTransactionWrapper(t)
+            _LOG.info(
+                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount}) with new category information"
+            )
+
+            if not dry_run:
+                await client.put(UpdateTransaction(budget_id, t.id_), tw)
 
 
 @start
