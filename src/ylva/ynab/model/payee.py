@@ -9,5 +9,5 @@ from . import Id
 class Payee(DataClassDictMixin):
     id_: Id = field(metadata=field_options(alias="id"))
     name: str
-    transfer_account_id: str
+    transfer_account_id: Id
     deleted: bool

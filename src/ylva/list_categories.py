@@ -1,6 +1,5 @@
 from typing import cast
 
-from ingridr import Iter
 from reidun.client import ApiClient
 
 from .ynab.categories.list import CategoriesResponse, ListCategories
@@ -17,17 +16,12 @@ async def list_categories(client: ApiClient, budget_id: str) -> list[Category]:
     """
     categories, _ = await client.get(ListCategories(budget_id))
     if categories is not None:
-        categories: CategoriesResponse = cast(CategoriesResponse, categories)
-        if len(categories.data.category_groups) == 0 or all(
-            len(cg.categories) == 0 for cg in categories.data.category_groups
+        cats: CategoriesResponse = cast(CategoriesResponse, categories)
+        if len(cats.data.category_groups) == 0 or all(
+            len(cg.categories) == 0 for cg in cats.data.category_groups
         ):
             raise ValueError(f"Budget {budget_id} has no categories")
-        return (
-            Iter(categories.data.category_groups)
-            .map(lambda e: e.categories)
-            .flatten()
-            .collect()
-        )
+        return [c for cg in cats.data.category_groups for c in cg.categories]
 
     else:
         raise ValueError(f"Budget {budget_id} has no categories")

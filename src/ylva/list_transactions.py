@@ -25,9 +25,9 @@ async def list_transactions(
         ltp = None
     transactions, _ = await client.get(lt, params=ltp)
     if transactions is not None:
-        transactions: TransactionsResponse = cast(TransactionsResponse, transactions)
-        if len(transactions.data.transactions) == 0:
+        trns: TransactionsResponse = cast(TransactionsResponse, transactions)
+        if len(trns.data.transactions) == 0:
             raise ValueError(f"Budget {budget_id} has no transactions")
-        return transactions.data.transactions
+        return trns.data.transactions
     else:
         raise ValueError(f"Budget {budget_id} has no transactions")

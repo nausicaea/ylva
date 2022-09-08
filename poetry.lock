@@ -194,21 +194,6 @@ optional = false
 python-versions = ">=3.5"
 
 [[package]]
-name = "ingridr"
-version = "0.1.2"
-description = ""
-category = "main"
-optional = false
-python-versions = "^3.10"
-develop = false
-
-[package.source]
-type = "git"
-url = "git@gitlab.com:nausicaea/ingridr.git"
-reference = "main"
-resolved_reference = "0c11dda39d5323566012d729704ef34f463a96e5"
-
-[[package]]
 name = "iniconfig"
 version = "1.1.1"
 description = "iniconfig: brain-dead simple config-ini parsing"
@@ -428,7 +413,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "reidun"
-version = "0.5.4"
+version = "0.5.5"
 description = ""
 category = "main"
 optional = false
@@ -437,17 +422,18 @@ develop = false
 
 [package.dependencies]
 aiohttp = "^3"
+appdirs = "^1.4.4"
 mashumaro = "^3.0.4"
 yarl = "^1"
 
 [package.extras]
-cache = ["aiohttp-client-cache[sqlite] (>=0.7.3,<0.8.0)", "appdirs (>=1.4.4,<2.0.0)"]
+cache = ["charmonium.cache (>=1.2.11,<2.0.0)"]
 
 [package.source]
 type = "git"
 url = "git@gitlab.com:nausicaea/reidun.git"
 reference = "main"
-resolved_reference = "3f42793dc7079287b624038a64fb693170f4c28d"
+resolved_reference = "d940baf2c48824b9e44830febf41ab04990a311a"
 
 [[package]]
 name = "toml"
@@ -525,7 +511,7 @@ progress = ["tqdm"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "66e218d54a0cf084d0e47bd7464590a3ca74e59d1853ae6473c41fb51066d7c3"
+content-hash = "2339375609c381c02d098f6121bffc0ff13f0ac9a7d9a22d673707a03c7ba98f"
 
 [metadata.files]
 aiohttp = [
@@ -744,7 +730,6 @@ idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
     {file = "idna-3.3.tar.gz", hash = "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"},
 ]
-ingridr = []
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},

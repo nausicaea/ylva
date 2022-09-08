@@ -8,10 +8,10 @@ from . import Id
 @dataclass
 class Category(DataClassDictMixin):
     id_: Id = field(metadata=field_options(alias="id"))
-    category_group_id: str
+    category_group_id: Id
     name: str
     hidden: bool
-    original_category_group_id: str
+    original_category_group_id: Id
     note: str
     budgeted: int
     activity: int

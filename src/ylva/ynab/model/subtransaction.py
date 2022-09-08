@@ -8,13 +8,13 @@ from . import Id
 @dataclass
 class Subtransaction(DataClassDictMixin):
     id_: Id = field(metadata=field_options(alias="id"))
-    transaction_id: str
+    transaction_id: Id
     amount: float
     memo: str
-    payee_id: str
+    payee_id: Id
     payee_name: str
-    category_id: str
+    category_id: Id
     category_name: str
-    transfer_account_id: str
-    transfer_transaction_id: str
+    transfer_account_id: Id
+    transfer_transaction_id: Id
     deleted: bool

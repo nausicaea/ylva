@@ -18,13 +18,13 @@ class Transaction(DataClassDictMixin):
     cleared: TransactionStatus
     approved: bool
     flag_color: str
-    account_id: str
-    payee_id: Optional[str]
-    category_id: Optional[str]
-    transfer_account_id: Optional[str]
-    transfer_transaction_id: Optional[str]
-    matched_transaction_id: Optional[str]
-    import_id: Optional[str]
+    account_id: Id
+    payee_id: Optional[Id]
+    category_id: Optional[Id]
+    transfer_account_id: Optional[Id]
+    transfer_transaction_id: Optional[Id]
+    matched_transaction_id: Optional[Id]
+    import_id: Optional[Id]
     deleted: bool
     account_name: str
     payee_name: Optional[str]

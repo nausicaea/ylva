@@ -16,9 +16,9 @@ async def list_payees(client: ApiClient, budget_id: str) -> list[Payee]:
     """
     payees, _ = await client.get(ListPayees(budget_id))
     if payees is not None:
-        payees: PayeesResponse = cast(PayeesResponse, payees)
-        if len(payees.data.payees) == 0:
+        pys: PayeesResponse = cast(PayeesResponse, payees)
+        if len(pys.data.payees) == 0:
             raise ValueError(f"Budget {budget_id} has no payees")
-        return payees.data.payees
+        return pys.data.payees
     else:
         raise ValueError(f"Budget {budget_id} has no payees")

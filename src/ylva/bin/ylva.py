@@ -6,9 +6,10 @@ from typing import List, Optional
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
-from .. import DEFAULT_CONFIG_FILE
+from .. import DEFAULT_CONFIG_FILE, week_number
 from ..config import Config
-from ..conversion import convert_a_to_b, convert_ata_to_btb, create_nti_lut
+from ..conversion import (convert_a_to_b, convert_ata_to_atb,
+                          convert_ata_to_btb, create_nti_lut)
 from ..get_api_token import get_api_token
 from ..list_categories import list_categories
 from ..list_payees import list_payees
@@ -141,6 +142,12 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
 
         if weekwise:
             weekwise_payees = convert_a_to_b(config.weekwise_payees, payee_lut)
+            week_no_to_category = convert_ata_to_atb(
+                config.week_no_to_category, category_lut
+            )
+        else:
+            weekwise_payees = list()
+            week_no_to_category = dict()
 
         update_queue: List[SaveTransaction] = list()
         f = (
@@ -153,14 +160,22 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
             if not predicate_transaction(t, f):
                 continue
 
-            if t.payee_id is not None and t.payee_id in payee_to_category.keys():
-                ci = payee_to_category[t.payee_id]
-
-                _LOG.info(
-                    f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to category {ci}"
-                )
-                st = SaveTransaction.builder(t).with_category_id(ci).build()
-                update_queue.append(st)
+            if t.payee_id is not None:
+                if t.payee_id in payee_to_category.keys():
+                    ci = payee_to_category[t.payee_id]
+                    _LOG.info(
+                        f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to category {ci}"
+                    )
+                    st = SaveTransaction.builder(t).with_category_id(ci).build()
+                    update_queue.append(st)
+                elif weekwise and t.payee_id in weekwise_payees:
+                    week_no = week_number(t.date)
+                    ci = week_no_to_category[week_no]
+                    _LOG.info(
+                        f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to week {week_no} and thus to category {ci}"
+                    )
+                    st = SaveTransaction.builder(t).with_category_id(ci).build()
+                    update_queue.append(st)
             else:
                 _LOG.warning(
                     f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was not matched to a category"

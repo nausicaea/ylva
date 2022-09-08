@@ -16,7 +16,7 @@ class Account(DataClassDictMixin):
     balance: float
     cleared_balance: float
     uncleared_balance: float
-    transfer_payee_id: str
+    transfer_payee_id: Id
     direct_import_linked: bool
     direct_import_in_error: bool
     deleted: bool

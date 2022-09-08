@@ -52,7 +52,7 @@ class Params(ParamsBuilder):
         if self.since_date is not None:
             params["since_date"] = self.since_date.isoformat()
         if self.type_ is not None:
-            params["type"] = self.type_.value
+            params["type"] = str(self.type_.value)
 
         if len(params) == 0:
             return None

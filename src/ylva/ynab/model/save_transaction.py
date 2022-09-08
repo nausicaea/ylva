@@ -16,12 +16,12 @@ MAX_MEMO_LENGTH: int = 200
 @dataclass
 class Builder:
     t: Transaction
-    payee_id: Optional[str] = field(default=None)
+    payee_id: Optional[Id] = field(default=None)
     payee_name: Optional[str] = field(default=None)
-    category_id: Optional[str] = field(default=None)
+    category_id: Optional[Id] = field(default=None)
     approved: Optional[bool] = field(default=None)
 
-    def with_payee_id(self, i: str) -> "Builder":
+    def with_payee_id(self, i: Id) -> "Builder":
         self.payee_id = i
         return self
 
@@ -29,7 +29,7 @@ class Builder:
         self.payee_name = n
         return self
 
-    def with_category_id(self, i: str) -> "Builder":
+    def with_category_id(self, i: Id) -> "Builder":
         self.category_id = i
         return self
 
@@ -61,17 +61,17 @@ class Builder:
 class SaveTransaction(DataClassDictMixin):
     id_: Id
 
-    account_id: str
+    account_id: Id
     date: date
     amount: int
-    payee_id: Optional[str] = field(default=None)
+    payee_id: Optional[Id] = field(default=None)
     payee_name: Optional[str] = field(default=None)
-    category_id: Optional[str] = field(default=None)
+    category_id: Optional[Id] = field(default=None)
     memo: Optional[str] = field(default=None)
     cleared: Optional[TransactionStatus] = field(default=None)
     approved: Optional[bool] = field(default=None)
     flag_color: Optional[str] = field(default=None)
-    import_id: Optional[str] = field(default=None)
+    import_id: Optional[Id] = field(default=None)
     # subtransactions: Optional[List[SaveSubtransaction]]
 
     @classmethod
