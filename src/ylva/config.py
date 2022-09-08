@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from mashumaro.mixins.yaml import DataClassYAMLMixin
 
@@ -13,6 +13,8 @@ _LOG: logging.Logger = logging.getLogger(__name__)
 @dataclass
 class Config(DataClassYAMLMixin):
     payee_to_category: Dict[str, str] = field(default_factory=dict)
+    weekwise_payees: List[str] = field(default_factory=list)
+    week_no_to_category: Dict[int, str] = field(default_factory=dict)
     api_url: str = field(default="https://api.youneedabudget.com/")
     budget_id: str = field(default="default")
     api_token: Optional[str] = field(default=None)

@@ -24,6 +24,11 @@ def ynab_api_token_id() -> str:
     return "2vwn7fnsrhyzdb4w37dlmnrt4y"
 
 
+@pytest.fixture(scope="session")
+def ynab_rate_limit() -> float:
+    return 200 / 3600
+
+
 @pytest_asyncio.fixture(scope="session")
 async def ynab_api_url(ynab_api_token_id: str) -> str:
     host_name: str = await one_password_get_item(ynab_api_token_id, "hostname")
@@ -42,7 +47,11 @@ async def ynab_default_budget(ynab_api_token_id: str) -> str:
 
 @pytest_asyncio.fixture(scope="session")
 async def ynab_api_client(
-    ynab_api_url: str, ynab_api_token: str
+    ynab_api_url: str,
+    ynab_api_token: str,
+    ynab_rate_limit: float,
 ) -> AsyncGenerator[ApiClient, None]:
-    async with ApiClient(ynab_api_url, auth=BearerAuth(ynab_api_token)) as client:
+    async with ApiClient(
+        ynab_api_url, auth=BearerAuth(ynab_api_token), rate_limit=ynab_rate_limit
+    ) as client:
         yield client

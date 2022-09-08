@@ -1,22 +1,23 @@
 import logging
 import sys
 from argparse import ArgumentParser, Namespace
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
 from .. import DEFAULT_CONFIG_FILE
 from ..config import Config
-from ..convert_ntn_to_iti import convert_ntn_to_iti
+from ..conversion import convert_ntn_to_iti
 from ..get_api_token import get_api_token
+from ..list_categories import list_categories
 from ..list_payees import list_payees
 from ..list_transactions import list_transactions
 from ..transaction_filter import TFilter, predicate_transaction
+from ..ynab.model.category import Category
 from ..ynab.model.payee import Payee
 from ..ynab.model.save_transaction import SaveTransaction
 from ..ynab.model.transaction import Transaction
-from ..ynab.model.transaction_status import TransactionStatus
 from ..ynab.transactions.list import TransactionType
 from ..ynab.transactions.update import (SaveTransactionWrapper,
                                         UpdateTransaction)
@@ -34,6 +35,15 @@ async def _payee_wrapper(client: ApiClient, budget_id: str) -> list[Payee]:
         sys.exit(1)
 
 
+async def _category_wrapper(client: ApiClient, budget_id: str) -> list[Category]:
+    try:
+        return await list_categories(client, budget_id)
+    except ValueError as ex:
+        _LOG.exception("Failed to retrieve categories", exc_info=ex)
+        print(ex.args[0])
+        sys.exit(1)
+
+
 async def _transaction_wrapper(
     client: ApiClient, budget_id: str, tt: TransactionType | None = None
 ) -> list[Transaction]:
@@ -41,17 +51,6 @@ async def _transaction_wrapper(
         return await list_transactions(client, budget_id, tt)
     except ValueError as ex:
         _LOG.exception("Failed to retrieve transactions", exc_info=ex)
-        print(ex.args[0])
-        sys.exit(1)
-
-
-async def _conversion_wrapper(
-    client: ApiClient, budget_id: str, ntn: Dict[str, str]
-) -> Dict[str, str]:
-    try:
-        return await convert_ntn_to_iti(client, budget_id, ntn)
-    except ValueError as ex:
-        _LOG.exception("Failed to convert the payee-category-mapping", exc_info=ex)
         print(ex.args[0])
         sys.exit(1)
 
@@ -85,11 +84,6 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
             if not predicate_transaction(t, f):
                 continue
 
-            assert t.cleared is not TransactionStatus.RECONCILED
-            assert t.transfer_transaction_id is None
-            assert t.payee_id is None and t.payee_name is None
-            assert t.memo is not None
-
             for payee in payees:
                 if payee.deleted:
                     continue
@@ -121,6 +115,7 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
 
 async def assign_categories(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
+    weekwise: bool = matches.weekwise
     rate_limit: Optional[float] = config.rate_limit
     api_url: str = config.api_url
     api_token: str = await get_api_token(config)
@@ -131,12 +126,15 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
         auth=BearerAuth(api_token),
         rate_limit=rate_limit,
     ) as client:
-        payee_to_category = await _conversion_wrapper(
-            client, budget_id, config.payee_to_category
-        )
+        payees = await _payee_wrapper(client, budget_id)
+        category = await _category_wrapper(client, budget_id)
 
         transactions = await _transaction_wrapper(
             client, budget_id, TransactionType.UNCATEGORIZED
+        )
+
+        payee_to_category = convert_ntn_to_iti(
+            config.payee_to_category, payees, category
         )
 
         update_queue: List[SaveTransaction] = list()
@@ -150,12 +148,7 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
             if not predicate_transaction(t, f):
                 continue
 
-            assert t.cleared is not TransactionStatus.RECONCILED
-            assert t.transfer_transaction_id is None
-            assert t.payee_id is not None
-            assert t.category_id is None
-
-            if t.payee_id in payee_to_category.keys():
+            if t.payee_id is not None and t.payee_id in payee_to_category.keys():
                 ci = payee_to_category[t.payee_id]
 
                 _LOG.info(
@@ -268,6 +261,12 @@ async def main() -> None:
     payees_parser.set_defaults(func=assign_payees)
     categories_parser = assign_sub_parsers.add_parser("categories")
     categories_parser.set_defaults(func=assign_categories)
+    categories_parser.add_argument(
+        "-w",
+        "--weekwise",
+        action="store_true",
+        help="Also iterate over and assign categories for week-wise payees. These will get a different category depending on the transaction date",
+    )
     matches = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)

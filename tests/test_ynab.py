@@ -1,7 +1,6 @@
 import pytest
 from reidun.client import ApiClient
 
-from ylva import __version__
 from ylva.ynab.accounts.list import AccountsResponse, ListAccounts
 from ylva.ynab.budgets.list import BudgetsResponse, ListBudgets
 from ylva.ynab.payees.list import ListPayees, PayeesResponse
