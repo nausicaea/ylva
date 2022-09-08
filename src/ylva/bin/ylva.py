@@ -1,89 +1,24 @@
 import logging
 from argparse import ArgumentParser, Namespace
-from typing import Dict, List, Optional, cast
+from typing import List, Optional, cast
 
-from ingridr import Iter
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
 from ..config import Config
-from ..one_password import one_password_get_item
+from ..convert_ntn_to_iti import convert_ntn_to_iti
+from ..get_api_token import get_api_token
+from ..list_transactions import list_transactions
 from ..transaction_filter import TFilter, predicate_transaction
-from ..ynab.categories.list import CategoriesResponse, ListCategories
 from ..ynab.model.save_transaction import SaveTransaction
 from ..ynab.model.transaction_status import TransactionStatus
 from ..ynab.payees.list import ListPayees, PayeesResponse
-from ..ynab.transactions.list import (ListTransactions, TransactionsResponse,
-                                      TransactionType)
+from ..ynab.transactions.list import TransactionType
 from ..ynab.transactions.update import (SaveTransactionWrapper,
                                         UpdateTransaction)
 from . import DEFAULT_CONFIG_FILE, start
 
 _LOG: logging.Logger = logging.getLogger(f"{__package__}.ylva")
-
-
-async def get_api_token(config: Config) -> str:
-    if config.api_token is not None:
-        api_token: str = config.api_token
-    elif config.op_item_id is not None:
-        api_token: str = await one_password_get_item(config.op_item_id, "credential")
-    else:
-        raise ValueError(
-            "No API authentication token is defined: you must set one of the config parameters 'api_token' or "
-            "'op_item_id' "
-        )
-
-    return api_token
-
-
-async def list_transactions(
-    client: ApiClient, budget_id: str, t: TransactionType
-) -> Optional[TransactionsResponse]:
-    lt = ListTransactions(budget_id)
-    ltp = lt.params().with_type(t).build()
-    transactions, _ = await client.get(lt, params=ltp)
-    if transactions is not None:
-        return cast(TransactionsResponse, transactions)
-    else:
-        return None
-
-
-async def map_iti(
-    client: ApiClient, budget_id: str, ntn: Dict[str, str]
-) -> Dict[str, str]:
-    payees, _ = await client.get(ListPayees(budget_id))
-    if payees is None:
-        _LOG.warning(f"Budget {budget_id} has no payees")
-        return dict()
-    payees = cast(PayeesResponse, payees)
-
-    categories, _ = await client.get(ListCategories(budget_id))
-    if categories is None:
-        _LOG.warning(f"Budget {budget_id} has no categories")
-        return dict()
-    categories = cast(CategoriesResponse, categories)
-
-    iti: Dict[str, str] = dict()
-    for pn, cn in ntn.items():
-        pi = (
-            Iter(payees.data.payees)
-            .filter(lambda e: e.name == pn)
-            .map(lambda e: e.id_)
-            .next()
-        )
-
-        ci = (
-            Iter(categories.data.category_groups)
-            .map(lambda e: e.categories)
-            .flatten()
-            .filter(lambda e: e.name == cn)
-            .map(lambda e: e.id_)
-            .next()
-        )
-        if pi is not None and ci is not None:
-            iti[pi] = ci
-
-    return iti
 
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
@@ -157,7 +92,7 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
         auth=BearerAuth(api_token),
         rate_limit=rate_limit,
     ) as client:
-        payment_to_category = await map_iti(
+        payment_to_category = await convert_ntn_to_iti(
             client, budget_id, config.payment_to_category
         )
 
