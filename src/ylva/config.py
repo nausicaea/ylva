@@ -12,7 +12,7 @@ _LOG: logging.Logger = logging.getLogger(__name__)
 
 @dataclass
 class Config(DataClassYAMLMixin):
-    payment_to_category: Dict[str, str] = field(default_factory=dict)
+    payee_to_category: Dict[str, str] = field(default_factory=dict)
     api_url: str = field(default="https://api.youneedabudget.com/")
     budget_id: str = field(default="default")
     api_token: Optional[str] = field(default=None)

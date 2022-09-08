@@ -131,8 +131,8 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
         auth=BearerAuth(api_token),
         rate_limit=rate_limit,
     ) as client:
-        payment_to_category = await _conversion_wrapper(
-            client, budget_id, config.payment_to_category
+        payee_to_category = await _conversion_wrapper(
+            client, budget_id, config.payee_to_category
         )
 
         transactions = await _transaction_wrapper(
@@ -155,8 +155,8 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
             assert t.payee_id is not None
             assert t.category_id is None
 
-            if t.payee_id in payment_to_category.keys():
-                ci = payment_to_category[t.payee_id]
+            if t.payee_id in payee_to_category.keys():
+                ci = payee_to_category[t.payee_id]
 
                 _LOG.info(
                     f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to category {ci}"
