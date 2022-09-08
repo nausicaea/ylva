@@ -109,37 +109,9 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
             return
 
         update_queue: List[SaveTransaction] = list()
-        f = TFilter.NONE | TFilter.ASSIGNED_MEMO
+        f = TFilter.NO_TRANSFER | TFilter.ASSIGNED_MEMO
         for t in transactions.data.transactions:
-            print(predicate_transaction(t, f))
-            # if not predicate_transaction(t, f):
-            #     continue
-            if t.transfer_transaction_id is not None:
-                _LOG.debug(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) is a transfer"
-                )
-                continue
-            elif t.cleared is TransactionStatus.RECONCILED:
-                _LOG.debug(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has been reconciled"
-                )
-                continue
-            elif t.payee_id is not None:
-                _LOG.debug(
-                    f"SKIPPING: Transaction {t.id_}  ({t.date} - {t.amount}) has an assigned payee"
-                )
-                continue
-            elif t.memo is None:
-                _LOG.warning(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no memo, so I cannot find the "
-                    "appropriate payee "
-                )
-                continue
-            elif len(t.memo) > 200:
-                _LOG.warning(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has a memo over 200 characters. YNAB will "
-                    "complain when updating this transaction "
-                )
+            if not predicate_transaction(t, f):
                 continue
 
             for payee in cast(PayeesResponse, payees).data.payees:
