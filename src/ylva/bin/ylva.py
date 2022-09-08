@@ -34,9 +34,11 @@ async def _payee_wrapper(client: ApiClient, budget_id: str) -> list[Payee]:
         sys.exit(1)
 
 
-async def _transaction_wrapper(client: ApiClient, budget_id: str) -> list[Transaction]:
+async def _transaction_wrapper(
+    client: ApiClient, budget_id: str, tt: TransactionType | None = None
+) -> list[Transaction]:
     try:
-        return await list_transactions(client, budget_id, TransactionType.UNCATEGORIZED)
+        return await list_transactions(client, budget_id, tt)
     except ValueError as ex:
         _LOG.exception("Failed to retrieve transactions", exc_info=ex)
         print(ex.args[0])
@@ -68,7 +70,9 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
     ) as client:
         payees = await _payee_wrapper(client, budget_id)
 
-        transactions = await _transaction_wrapper(client, budget_id)
+        transactions = await _transaction_wrapper(
+            client, budget_id, TransactionType.UNAPPROVED
+        )
 
         update_queue: List[SaveTransaction] = list()
         f = (
@@ -131,7 +135,9 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
             client, budget_id, config.payment_to_category
         )
 
-        transactions = await _transaction_wrapper(client, budget_id)
+        transactions = await _transaction_wrapper(
+            client, budget_id, TransactionType.UNCATEGORIZED
+        )
 
         update_queue: List[SaveTransaction] = list()
         f = (
@@ -187,7 +193,9 @@ async def approve(matches: Namespace, config: Config) -> None:
         auth=BearerAuth(api_token),
         rate_limit=rate_limit,
     ) as client:
-        transactions = await _transaction_wrapper(client, budget_id)
+        transactions = await _transaction_wrapper(
+            client, budget_id, TransactionType.UNAPPROVED
+        )
 
         f: TFilter = TFilter.NOT_RECONCILED | TFilter.NO_TRANSFER
         if not ignore_cleared:
@@ -206,13 +214,13 @@ async def approve(matches: Namespace, config: Config) -> None:
             update_queue.append(st)
 
         for t in update_queue:
-            # tw = SaveTransactionWrapper(t)
+            tw = SaveTransactionWrapper(t)
             _LOG.info(
                 f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount / 1000}) will be approved"
             )
 
             if not dry_run:
-                raise NotImplementedError()
+                await client.put(UpdateTransaction(budget_id, t.id_), tw)
 
 
 @start

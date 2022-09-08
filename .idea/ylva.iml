@@ -4,7 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Remote Python 3.6.8 (sftp://confluence@bzwiki:22/home/confluence/.local/share/python/bin/python3)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Poetry (ylva)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">
