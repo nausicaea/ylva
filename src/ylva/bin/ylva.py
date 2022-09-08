@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
+from .. import DEFAULT_CONFIG_FILE
 from ..config import Config
 from ..convert_ntn_to_iti import convert_ntn_to_iti
 from ..get_api_token import get_api_token
@@ -19,7 +20,7 @@ from ..ynab.model.transaction_status import TransactionStatus
 from ..ynab.transactions.list import TransactionType
 from ..ynab.transactions.update import (SaveTransactionWrapper,
                                         UpdateTransaction)
-from . import DEFAULT_CONFIG_FILE, start
+from . import start
 
 _LOG: logging.Logger = logging.getLogger(f"{__package__}.ylva")
 
@@ -92,13 +93,11 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
                     _LOG.info(
                         f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to payee {payee.name}"
                     )
-                    st = SaveTransaction(
-                        t.id_,
-                        t.account_id,
-                        t.date,
-                        t.amount,
-                        payee_id=payee.id_,
-                        payee_name=payee.name,
+                    st = (
+                        SaveTransaction.builder(t)
+                        .with_payee_id(payee.id_)
+                        .with_payee_name(payee.name)
+                        .build()
                     )
                     update_queue.append(st)
             else:
@@ -156,13 +155,7 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
                 _LOG.info(
                     f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to category {ci}"
                 )
-                st = SaveTransaction(
-                    t.id_,
-                    t.account_id,
-                    t.date,
-                    t.amount,
-                    category_id=ci,
-                )
+                st = SaveTransaction.builder(t).with_category_id(ci).build()
                 update_queue.append(st)
             else:
                 _LOG.warning(
@@ -209,13 +202,7 @@ async def approve(matches: Namespace, config: Config) -> None:
             if not predicate_transaction(t, f):
                 continue
 
-            st = SaveTransaction(
-                t.id_,
-                t.account_id,
-                t.date,
-                t.amount,
-                approved=True,
-            )
+            st = SaveTransaction.builder(t).with_approval(True).build()
             update_queue.append(st)
 
         for t in update_queue:

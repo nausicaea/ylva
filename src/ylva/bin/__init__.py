@@ -1,19 +1,7 @@
 import asyncio
 import functools
 import sys
-from pathlib import Path
 from typing import Callable, Coroutine
-
-from appdirs import AppDirs
-
-APP_IDENTIFIER = "net.nausicaea.ylva"
-APP_AUTHOR = "nausicaea"
-YML_SUFFIX = ".yml"
-YML_SUFFIXES = (YML_SUFFIX, ".yaml")
-
-APPDIRS = AppDirs(APP_IDENTIFIER, APP_AUTHOR)
-CONFIG_DIR = Path(APPDIRS.user_config_dir)
-DEFAULT_CONFIG_FILE = CONFIG_DIR.joinpath(f"config{YML_SUFFIX}")
 
 
 def start(coro: Callable[[], Coroutine]) -> Callable[[], None]:

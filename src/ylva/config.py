@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 from mashumaro.mixins.yaml import DataClassYAMLMixin
 
-from ylva.bin import YML_SUFFIX, YML_SUFFIXES
+from . import YML_SUFFIX, YML_SUFFIXES
 
 _LOG: logging.Logger = logging.getLogger(__name__)
 
