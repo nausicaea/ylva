@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional, Set
 
 from mashumaro import DataClassDictMixin
 
+from . import Id
 from .transaction import Transaction
 from .transaction_status import TransactionStatus
 
@@ -58,7 +59,7 @@ class Builder:
 
 @dataclass
 class SaveTransaction(DataClassDictMixin):
-    id_: str
+    id_: Id
 
     account_id: str
     date: date

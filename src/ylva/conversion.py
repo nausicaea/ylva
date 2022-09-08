@@ -1,49 +1,80 @@
-from typing import Dict, Iterable, Protocol, runtime_checkable
+from typing import Iterable, Mapping, TypeVar
 
-from ingridr import Iter
-
+from .ynab.model import Id
 from .ynab.model.category import Category
 from .ynab.model.payee import Payee
 
+IdentA = str
+IdentB = str
 
-@runtime_checkable
-class NamedId(Protocol):
-    def name(self) -> str:
-        ...
-
-    def id(self) -> str:
-        ...
-
-
-def convert_names_to_ids(names: Iterable[str], lut: Iterable[NamedId]) -> list[str]:
-    ids: list[str] = list()
-    for n in names:
-        i = Iter(lut).filter(lambda e: e.name() == n).map(lambda e: e.id()).next()
-        if i is not None:
-            ids.append(i)
-
-    return ids
+A1 = TypeVar("A1")
+B1 = TypeVar("B1")
+A2 = TypeVar("A2")
+B2 = TypeVar("B2")
 
 
-def convert_ntn_to_iti(
-    ntn: Dict[str, str], payees: Iterable[Payee], categories: Iterable[Category]
-) -> Dict[str, str]:
+def create_nti_lut(data: Iterable[Payee] | Iterable[Category]) -> dict[str, Id]:
     """
-    Convert a mapping of payee names to category names into a mapping of
-    payee IDs to category IDs
+    Build a lookup table (a reference mapping) of names to IDs
 
-    :param ntn: the name-to-name mapping of payees and categories
-    :param payees: an iterable of payees
-    :param categories: an iterable of categories
-    :returns: the id-to-id mapping of payees and categories
-    :raise ValueError: when there are no payees or categories
+    :param data: an iterable of payees or categories
+    :returns: a mapping of names to IDs
     """
-    iti: Dict[str, str] = dict()
-    for pn, cn in ntn.items():
-        pi = Iter(payees).filter(lambda e: e.name == pn).map(lambda e: e.id_).next()
+    return {e.name: e.id_ for e in data}
 
-        ci = Iter(categories).filter(lambda e: e.name == cn).map(lambda e: e.id_).next()
-        if pi is not None and ci is not None:
-            iti[pi] = ci
 
-    return iti
+def create_itn_lut(data: Iterable[Payee] | Iterable[Category]) -> dict[Id, str]:
+    """
+    Build a lookup table (a reference mapping) of IDs to names
+
+    :param data: an iterable of payees or categories
+    :returns: a mapping of IDs to names
+    """
+    return {e.id_: e.name for e in data}
+
+
+def convert_a_to_b(idents_a: Iterable[A1], lut: Mapping[A1, B1]) -> list[B1]:
+    """
+    Convert an iterable of identifiers A into an iterable of identifiers B. If
+    you have two unique identifiers for a particular object, you can use this
+    function to convert a sequence of type A identifiers into a sequence of
+    type B identifiers.
+
+    :param idents_a: the iterable of names
+    :param lut: a reference mapping of identifier A to identifier B
+    :returns: a list of identifiers B
+    """
+    return [lut[a] for a in idents_a if a in lut]
+
+
+def convert_ata_to_btb(
+    ata: Mapping[A1, A2], key_lut: Mapping[A1, B1], value_lut: Mapping[A2, B2]
+) -> dict[B1, B2]:
+    """
+    Convert a mapping of identifiers A-to-A to a mapping of identifiers B-to-B.
+    If you have two unique identifiers for a particular object, you can use
+    this function to convert a relationship of two objects established by the
+    first identifier into a relationship of the same objects using the second
+    identifier.
+
+    :param ata: the A-to-A mapping (ex. payee to category names)
+    :param key_lut: a reference mapping of identifiers A to identifiers B for the input mapping keys (ex. payee names to IDs)
+    :param value_lut: a reference mapping of identifiers A to identifiers B for the input mapping values (ex. category names to IDs)
+    """
+    return {
+        key_lut[ak]: value_lut[av]
+        for ak, av in ata.items()
+        if ak in key_lut and av in value_lut
+    }
+
+
+def convert_ata_to_atb(
+    ata: Mapping[A1, A2], value_lut: Mapping[A2, B2]
+) -> dict[A1, B2]:
+    """
+    Convert a mapping of identifiers A-to-A to a mapping of identifiers A-to-B.
+
+    :param ata: the A-to-A mapping (ex. payee to category names)
+    :param value_lut: a reference mapping of identifiers A to identifiers B for the input mapping values (ex. category names to IDs)
+    """
+    return {ak: value_lut[av] for ak, av in ata.items() if av in value_lut}

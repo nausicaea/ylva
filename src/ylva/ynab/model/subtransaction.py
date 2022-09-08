@@ -2,10 +2,12 @@ from dataclasses import dataclass, field
 
 from mashumaro import DataClassDictMixin, field_options
 
+from . import Id
+
 
 @dataclass
 class Subtransaction(DataClassDictMixin):
-    id_: str = field(metadata=field_options(alias="id"))
+    id_: Id = field(metadata=field_options(alias="id"))
     transaction_id: str
     amount: float
     memo: str

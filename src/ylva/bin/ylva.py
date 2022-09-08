@@ -8,7 +8,7 @@ from reidun.client import ApiClient
 
 from .. import DEFAULT_CONFIG_FILE
 from ..config import Config
-from ..conversion import convert_ntn_to_iti
+from ..conversion import convert_a_to_b, convert_ata_to_btb, create_nti_lut
 from ..get_api_token import get_api_token
 from ..list_categories import list_categories
 from ..list_payees import list_payees
@@ -127,15 +127,20 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
         rate_limit=rate_limit,
     ) as client:
         payees = await _payee_wrapper(client, budget_id)
-        category = await _category_wrapper(client, budget_id)
+        categories = await _category_wrapper(client, budget_id)
 
         transactions = await _transaction_wrapper(
             client, budget_id, TransactionType.UNCATEGORIZED
         )
 
-        payee_to_category = convert_ntn_to_iti(
-            config.payee_to_category, payees, category
+        payee_lut = create_nti_lut(payees)
+        category_lut = create_nti_lut(categories)
+        payee_to_category = convert_ata_to_btb(
+            config.payee_to_category, payee_lut, category_lut
         )
+
+        if weekwise:
+            weekwise_payees = convert_a_to_b(config.weekwise_payees, payee_lut)
 
         update_queue: List[SaveTransaction] = list()
         f = (

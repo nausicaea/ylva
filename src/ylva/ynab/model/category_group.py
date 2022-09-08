@@ -3,12 +3,13 @@ from typing import List
 
 from mashumaro import DataClassDictMixin, field_options
 
+from . import Id
 from .category import Category
 
 
 @dataclass
 class CategoryGroup(DataClassDictMixin):
-    id_: str = field(metadata=field_options(alias="id"))
+    id_: Id = field(metadata=field_options(alias="id"))
     name: str
     hidden: bool
     deleted: bool
