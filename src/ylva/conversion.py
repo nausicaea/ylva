@@ -4,9 +4,6 @@ from .ynab.model import Id
 from .ynab.model.category import Category
 from .ynab.model.payee import Payee
 
-IdentA = str
-IdentB = str
-
 A1 = TypeVar("A1")
 B1 = TypeVar("B1")
 A2 = TypeVar("A2")
