@@ -2,6 +2,14 @@ import asyncio
 
 
 async def one_password_get_item(item_id: str, field_name: str) -> str:
+    """
+    Retrieve an item from the One Password vault
+
+    :param item_id: the vault ID
+    :param field_name: the field within the vault item to retrieve
+    :return: the value of the vault item
+    :raise ValueError: if retrieval failed due to non-zero subprocess returncode
+    """
     proc = await asyncio.subprocess.create_subprocess_exec(
         "op",
         "item",
@@ -12,5 +20,8 @@ async def one_password_get_item(item_id: str, field_name: str) -> str:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    stdout, _ = await proc.communicate()
+    stdout, stderr = await proc.communicate()
+    if proc.returncode != 0:
+        raise ValueError(stderr.decode("utf-8"))
+
     return stdout.strip().decode("utf-8")
