@@ -1,6 +1,7 @@
 import logging
+import sys
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, cast
+from typing import Dict, List, Optional
 
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
@@ -8,17 +9,48 @@ from reidun.client import ApiClient
 from ..config import Config
 from ..convert_ntn_to_iti import convert_ntn_to_iti
 from ..get_api_token import get_api_token
+from ..list_payees import list_payees
 from ..list_transactions import list_transactions
 from ..transaction_filter import TFilter, predicate_transaction
+from ..ynab.model.payee import Payee
 from ..ynab.model.save_transaction import SaveTransaction
+from ..ynab.model.transaction import Transaction
 from ..ynab.model.transaction_status import TransactionStatus
-from ..ynab.payees.list import ListPayees, PayeesResponse
 from ..ynab.transactions.list import TransactionType
 from ..ynab.transactions.update import (SaveTransactionWrapper,
                                         UpdateTransaction)
 from . import DEFAULT_CONFIG_FILE, start
 
 _LOG: logging.Logger = logging.getLogger(f"{__package__}.ylva")
+
+
+async def _payee_wrapper(client: ApiClient, budget_id: str) -> list[Payee]:
+    try:
+        return await list_payees(client, budget_id)
+    except ValueError as ex:
+        _LOG.exception("Failed to retrieve payees", exc_info=ex)
+        print(ex.args[0])
+        sys.exit(1)
+
+
+async def _transaction_wrapper(client: ApiClient, budget_id: str) -> list[Transaction]:
+    try:
+        return await list_transactions(client, budget_id, TransactionType.UNCATEGORIZED)
+    except ValueError as ex:
+        _LOG.exception("Failed to retrieve transactions", exc_info=ex)
+        print(ex.args[0])
+        sys.exit(1)
+
+
+async def _conversion_wrapper(
+    client: ApiClient, budget_id: str, ntn: Dict[str, str]
+) -> Dict[str, str]:
+    try:
+        return await convert_ntn_to_iti(client, budget_id, ntn)
+    except ValueError as ex:
+        _LOG.exception("Failed to convert the payee-category-mapping", exc_info=ex)
+        print(ex.args[0])
+        sys.exit(1)
 
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
@@ -33,28 +65,32 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
         auth=BearerAuth(api_token),
         rate_limit=rate_limit,
     ) as client:
-        payees, _ = await client.get(ListPayees(budget_id))
-        if payees is None:
-            return
+        payees = await _payee_wrapper(client, budget_id)
 
-        transactions = await list_transactions(
-            client, budget_id, TransactionType.UNCATEGORIZED
-        )
-        if transactions is None:
-            return
+        transactions = await _transaction_wrapper(client, budget_id)
 
         update_queue: List[SaveTransaction] = list()
-        f = TFilter.NO_TRANSFER | TFilter.ASSIGNED_MEMO
-        for t in transactions.data.transactions:
+        f = (
+            TFilter.NOT_RECONCILED
+            | TFilter.NO_TRANSFER
+            | TFilter.NO_PAYEE
+            | TFilter.ASSIGNED_MEMO
+        )
+        for t in transactions:
             if not predicate_transaction(t, f):
                 continue
 
-            for payee in cast(PayeesResponse, payees).data.payees:
+            assert t.cleared is not TransactionStatus.RECONCILED
+            assert t.transfer_transaction_id is None
+            assert t.payee_id is None and t.payee_name is None
+            assert t.memo is not None
+
+            for payee in payees:
                 if payee.deleted:
                     continue
                 elif t.memo is not None and payee.name.lower() in t.memo.lower():
                     _LOG.info(
-                        f"MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was matched to payee {payee.name}"
+                        f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to payee {payee.name}"
                     )
                     st = SaveTransaction(
                         t.id_,
@@ -67,13 +103,13 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
                     update_queue.append(st)
             else:
                 _LOG.warning(
-                    f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was not matched to a payee"
+                    f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was not matched to a payee"
                 )
 
         for t in update_queue:
             tw = SaveTransactionWrapper(t)
             _LOG.info(
-                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount}) with new payee information"
+                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount / 1000}) with new payee information"
             )
 
             if not dry_run:
@@ -92,51 +128,33 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
         auth=BearerAuth(api_token),
         rate_limit=rate_limit,
     ) as client:
-        payment_to_category = await convert_ntn_to_iti(
+        payment_to_category = await _conversion_wrapper(
             client, budget_id, config.payment_to_category
         )
 
-        transactions = await list_transactions(
-            client, budget_id, TransactionType.UNCATEGORIZED
-        )
-        if transactions is None:
-            return
+        transactions = await _transaction_wrapper(client, budget_id)
 
         update_queue: List[SaveTransaction] = list()
-        for t in transactions.data.transactions:
-            if t.transfer_transaction_id is not None:
-                _LOG.debug(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) is a transfer"
-                )
+        f = (
+            TFilter.NOT_RECONCILED
+            | TFilter.NO_TRANSFER
+            | TFilter.NO_CATEGORY
+            | TFilter.ASSIGNED_PAYEE
+        )
+        for t in transactions:
+            if not predicate_transaction(t, f):
                 continue
-            elif t.cleared is TransactionStatus.RECONCILED:
-                _LOG.debug(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has been reconciled"
-                )
-                continue
-            elif t.category_id is not None:
-                _LOG.debug(
-                    f"SKIPPING: Transaction {t.id_}  ({t.date} - {t.amount}) has an assigned category"
-                )
-                continue
-            elif t.payee_id is None:
-                _LOG.warning(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has no payee, so I cannot find the "
-                    "appropriate category "
-                )
-                continue
-            elif t.memo is not None and len(t.memo) > 200:
-                _LOG.warning(
-                    f"SKIPPING: Transaction {t.id_} ({t.date} - {t.amount}) has a memo over 200 characters. YNAB will "
-                    "complain when updating this transaction "
-                )
-                continue
+
+            assert t.cleared is not TransactionStatus.RECONCILED
+            assert t.transfer_transaction_id is None
+            assert t.payee_id is not None
+            assert t.category_id is None
 
             if t.payee_id in payment_to_category.keys():
                 ci = payment_to_category[t.payee_id]
 
                 _LOG.info(
-                    f"MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was matched to category {ci}"
+                    f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to category {ci}"
                 )
                 st = SaveTransaction(
                     t.id_,
@@ -148,13 +166,13 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
                 update_queue.append(st)
             else:
                 _LOG.warning(
-                    f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount}) was not matched to a category"
+                    f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was not matched to a category"
                 )
 
         for t in update_queue:
             tw = SaveTransactionWrapper(t)
             _LOG.info(
-                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount}) with new category information"
+                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount / 1000}) with new category information"
             )
 
             if not dry_run:
@@ -163,6 +181,9 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
 
 async def approve(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
+    ignore_cleared: bool = matches.ignore_cleared
+    ignore_category: bool = matches.ignore_category
+    ignore_payee: bool = matches.ignore_payee
     rate_limit: Optional[float] = config.rate_limit
     api_url: str = config.api_url
     api_token: str = await get_api_token(config)
@@ -173,17 +194,38 @@ async def approve(matches: Namespace, config: Config) -> None:
         auth=BearerAuth(api_token),
         rate_limit=rate_limit,
     ) as client:
-        transactions = await list_transactions(
-            client, budget_id, TransactionType.UNCATEGORIZED
-        )
-        if transactions is None:
-            return
+        transactions = await _transaction_wrapper(client, budget_id)
+
+        f: TFilter = TFilter.NOT_RECONCILED | TFilter.NO_TRANSFER
+        if not ignore_cleared:
+            f |= TFilter.CLEARED
+        if not ignore_category:
+            f |= TFilter.ASSIGNED_CATEGORY
+        if not ignore_payee:
+            f |= TFilter.ASSIGNED_PAYEE
 
         update_queue: List[SaveTransaction] = list()
-        for t in transactions.data.transactions:
-            pass
+        for t in transactions:
+            if not predicate_transaction(t, f):
+                continue
 
-    raise NotImplementedError()
+            st = SaveTransaction(
+                t.id_,
+                t.account_id,
+                t.date,
+                t.amount,
+                approved=True,
+            )
+            update_queue.append(st)
+
+        for t in update_queue:
+            # tw = SaveTransactionWrapper(t)
+            _LOG.info(
+                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount / 1000}) will be approved"
+            )
+
+            if not dry_run:
+                raise NotImplementedError()
 
 
 @start
@@ -239,6 +281,9 @@ async def main() -> None:
         config = Config.create(DEFAULT_CONFIG_FILE)
     else:
         config = Config.load(DEFAULT_CONFIG_FILE)
+
+    if matches.dry_run:
+        _LOG.info("Dry-run mode enabled. Not committing any changes")
 
     await matches.func(matches, config)
 
