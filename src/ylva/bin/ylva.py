@@ -17,11 +17,11 @@ from ..list_transactions import list_transactions
 from ..transaction_filter import TFilter, predicate_transaction
 from ..ynab.model.category import Category
 from ..ynab.model.payee import Payee
-from ..ynab.model.save_transaction import SaveTransaction
 from ..ynab.model.transaction import Transaction
+from ..ynab.model.update_transaction import UpdateTransaction
 from ..ynab.transactions.list import TransactionType
-from ..ynab.transactions.update import (SaveTransactionWrapper,
-                                        UpdateTransaction)
+from ..ynab.transactions.update_multiple import (UpdateMultipleTransactions,
+                                                 UpdateTransactionsWrapper)
 from . import start
 
 _LOG: logging.Logger = logging.getLogger(f"{__package__}.ylva")
@@ -74,7 +74,7 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
             client, budget_id, TransactionType.UNAPPROVED
         )
 
-        update_queue: List[SaveTransaction] = list()
+        update_queue: List[UpdateTransaction] = list()
         f = (
             TFilter.NOT_RECONCILED
             | TFilter.NO_TRANSFER
@@ -92,26 +92,26 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
                     _LOG.info(
                         f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to payee {payee.name}"
                     )
-                    st = (
-                        SaveTransaction.builder(t)
+                    ut = (
+                        UpdateTransaction.builder(t)
                         .with_payee_id(payee.id_)
                         .with_payee_name(payee.name)
                         .build()
                     )
-                    update_queue.append(st)
+                    update_queue.append(ut)
+                    break
             else:
                 _LOG.warning(
                     f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was not matched to a payee"
                 )
 
-        for t in update_queue:
-            tw = SaveTransactionWrapper(t)
+        if len(update_queue) > 0:
             _LOG.info(
-                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount / 1000}) with new payee information"
+                f"UPDATING: {len(update_queue)} transactions with new payee information"
             )
-
+            tw = UpdateTransactionsWrapper(update_queue)
             if not dry_run:
-                await client.put(UpdateTransaction(budget_id, t.id_), tw)
+                await client.patch(UpdateMultipleTransactions(budget_id), tw)
 
 
 async def assign_categories(matches: Namespace, config: Config) -> None:
@@ -149,7 +149,7 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
             weekwise_payees = list()
             week_no_to_category = dict()
 
-        update_queue: List[SaveTransaction] = list()
+        update_queue: List[UpdateTransaction] = list()
         f = (
             TFilter.NOT_RECONCILED
             | TFilter.NO_TRANSFER
@@ -166,29 +166,28 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
                     _LOG.info(
                         f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to category {ci}"
                     )
-                    st = SaveTransaction.builder(t).with_category_id(ci).build()
-                    update_queue.append(st)
+                    ut = UpdateTransaction.builder(t).with_category_id(ci).build()
+                    update_queue.append(ut)
                 elif weekwise and t.payee_id in weekwise_payees:
                     week_no = week_number(t.date)
                     ci = week_no_to_category[week_no]
                     _LOG.info(
                         f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to week {week_no} and thus to category {ci}"
                     )
-                    st = SaveTransaction.builder(t).with_category_id(ci).build()
-                    update_queue.append(st)
+                    ut = UpdateTransaction.builder(t).with_category_id(ci).build()
+                    update_queue.append(ut)
             else:
                 _LOG.warning(
                     f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was not matched to a category"
                 )
 
-        for t in update_queue:
-            tw = SaveTransactionWrapper(t)
+        if len(update_queue) > 0:
             _LOG.info(
-                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount / 1000}) with new category information"
+                f"UPDATING: {len(update_queue)} transactions with new category information"
             )
-
+            tw = UpdateTransactionsWrapper(update_queue)
             if not dry_run:
-                await client.put(UpdateTransaction(budget_id, t.id_), tw)
+                await client.patch(UpdateMultipleTransactions(budget_id), tw)
 
 
 async def approve(matches: Namespace, config: Config) -> None:
@@ -218,22 +217,19 @@ async def approve(matches: Namespace, config: Config) -> None:
         if not ignore_payee:
             f |= TFilter.ASSIGNED_PAYEE
 
-        update_queue: List[SaveTransaction] = list()
+        update_queue: List[UpdateTransaction] = list()
         for t in transactions:
             if not predicate_transaction(t, f):
                 continue
 
-            st = SaveTransaction.builder(t).with_approval(True).build()
-            update_queue.append(st)
+            ut = UpdateTransaction.builder(t).with_approval(True).build()
+            update_queue.append(ut)
 
-        for t in update_queue:
-            tw = SaveTransactionWrapper(t)
-            _LOG.info(
-                f"UPDATING: Transaction {t.id_} ({t.date} - {t.amount / 1000}) will be approved"
-            )
-
+        if len(update_queue) > 0:
+            _LOG.info(f"UPDATING: {len(update_queue)} transactions will be approved")
+            tw = UpdateTransactionsWrapper(update_queue)
             if not dry_run:
-                await client.put(UpdateTransaction(budget_id, t.id_), tw)
+                await client.patch(UpdateMultipleTransactions(budget_id), tw)
 
 
 @start
