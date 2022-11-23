@@ -56,6 +56,21 @@ async def _transaction_wrapper(
         sys.exit(1)
 
 
+async def import_statements(matches: Namespace, config: Config) -> None:
+    dry_run: bool = matches.dry_run
+    rate_limit: Optional[float] = config.rate_limit
+    api_url: str = config.api_url
+    api_token: str = await get_api_token(config)
+    budget_id: str = config.budget_id
+
+    async with ApiClient(
+        api_url,
+        auth=BearerAuth(api_token),
+        rate_limit=rate_limit,
+    ) as client:
+        pass
+
+
 async def assign_payees(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
     rate_limit: Optional[float] = config.rate_limit
@@ -283,6 +298,8 @@ async def main() -> None:
         action="store_true",
         help="Also iterate over and assign categories for week-wise payees. These will get a different category depending on the transaction date",
     )
+    import_parser = sub_parsers.add_parser("import")
+    import_parser.set_defaults(func=import_statements)
     matches = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)
