@@ -1,8 +1,11 @@
 import logging
 import sys
+import tempfile
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 from typing import List, Optional
 
+from ofxstatement import ofx, plugin, ui
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
@@ -56,19 +59,32 @@ async def _transaction_wrapper(
         sys.exit(1)
 
 
-async def import_statements(matches: Namespace, config: Config) -> None:
+async def import_statement(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
+    format_: str = matches.format
+    file: Path = matches.file
+
     rate_limit: Optional[float] = config.rate_limit
     api_url: str = config.api_url
     api_token: str = await get_api_token(config)
     budget_id: str = config.budget_id
 
-    async with ApiClient(
-        api_url,
-        auth=BearerAuth(api_token),
-        rate_limit=rate_limit,
-    ) as client:
-        pass
+    appui = ui.UI()
+    plg = plugin.get_plugin(format_, appui, dict())
+    prs = plg.get_parser(str(file))
+    stmt = prs.parse()
+    stmt.assert_valid()
+
+    with tempfile.TemporaryFile("wt") as f:
+        wrtr = ofx.OfxWriter(stmt)
+        f.write(wrtr.toxml())
+
+        async with ApiClient(
+            api_url,
+            auth=BearerAuth(api_token),
+            rate_limit=rate_limit,
+        ) as client:
+            pass
 
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
@@ -299,7 +315,20 @@ async def main() -> None:
         help="Also iterate over and assign categories for week-wise payees. These will get a different category depending on the transaction date",
     )
     import_parser = sub_parsers.add_parser("import")
-    import_parser.set_defaults(func=import_statements)
+    import_parser.set_defaults(func=import_statement)
+    import_parser.add_argument(
+        "-f",
+        "--format",
+        type=str,
+        choices=["mt940"],
+        default="mt940",
+        help="Select the input file format",
+    )
+    import_parser.add_argument(
+        "file",
+        type=Path,
+        help="Specify the statement file that is to be imported",
+    )
     matches = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)

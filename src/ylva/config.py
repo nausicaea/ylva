@@ -17,6 +17,7 @@ class Config(DataClassYAMLMixin):
     week_no_to_category: Dict[int, str] = field(default_factory=dict)
     api_url: str = field(default="https://api.youneedabudget.com/")
     budget_id: str = field(default="default")
+    testing_budget_id: Optional[str] = field(default=None)
     api_token: Optional[str] = field(default=None)
     op_item_id: Optional[str] = field(default=None)
     rate_limit: Optional[float] = field(default=None)
