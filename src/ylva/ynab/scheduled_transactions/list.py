@@ -3,7 +3,6 @@ from typing import Dict, List, Optional, Type
 
 from mashumaro.mixins.dict import DataClassDictMixin
 from mashumaro.mixins.json import DataClassJSONMixin
-from reidun.client import ApiEndpoint
 from reidun.endpoint import ApiEndpoint, ParamsBuilder
 
 from .. import ResponseWrapper

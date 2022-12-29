@@ -14,24 +14,20 @@ async def test_list_budgets(ynab_api_client: ApiClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_payees(
-    ynab_api_client: ApiClient, ynab_default_budget: str
-) -> None:
-    data, _ = await ynab_api_client.get(ListPayees(ynab_default_budget))
+async def test_list_payees(ynab_api_client: ApiClient, ynab_test_budget: str) -> None:
+    data, _ = await ynab_api_client.get(ListPayees(ynab_test_budget))
     assert isinstance(data, PayeesResponse)
 
 
 @pytest.mark.asyncio
-async def test_list_accounts(
-    ynab_api_client: ApiClient, ynab_default_budget: str
-) -> None:
-    data, _ = await ynab_api_client.get(ListAccounts(ynab_default_budget))
+async def test_list_accounts(ynab_api_client: ApiClient, ynab_test_budget: str) -> None:
+    data, _ = await ynab_api_client.get(ListAccounts(ynab_test_budget))
     assert isinstance(data, AccountsResponse)
 
 
 @pytest.mark.asyncio
 async def test_list_transactions(
-    ynab_api_client: ApiClient, ynab_default_budget: str
+    ynab_api_client: ApiClient, ynab_test_budget: str
 ) -> None:
-    data, _ = await ynab_api_client.get(ListTransactions(ynab_default_budget))
+    data, _ = await ynab_api_client.get(ListTransactions(ynab_test_budget))
     assert isinstance(data, TransactionsResponse)

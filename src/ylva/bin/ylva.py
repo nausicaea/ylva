@@ -1,11 +1,11 @@
+import datetime
 import logging
 import sys
-import tempfile
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import List, Optional
 
-from ofxstatement import ofx, plugin, ui
+from ofxstatement import plugin, ui
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
@@ -18,10 +18,14 @@ from ..list_categories import list_categories
 from ..list_payees import list_payees
 from ..list_transactions import list_transactions
 from ..transaction_filter import TFilter, predicate_transaction
+from ..ynab.model import Id
 from ..ynab.model.category import Category
 from ..ynab.model.payee import Payee
+from ..ynab.model.save_transaction import SaveTransaction
 from ..ynab.model.transaction import Transaction
 from ..ynab.model.update_transaction import UpdateTransaction
+from ..ynab.transactions.create import (CreateTransactions,
+                                        SaveTransactionsWrapper)
 from ..ynab.transactions.list import TransactionType
 from ..ynab.transactions.update_multiple import (UpdateMultipleTransactions,
                                                  UpdateTransactionsWrapper)
@@ -75,16 +79,36 @@ async def import_statement(matches: Namespace, config: Config) -> None:
     stmt = prs.parse()
     stmt.assert_valid()
 
-    with tempfile.TemporaryFile("wt") as f:
-        wrtr = ofx.OfxWriter(stmt)
-        f.write(wrtr.toxml())
+    async with ApiClient(
+        api_url,
+        auth=BearerAuth(api_token),
+        rate_limit=rate_limit,
+    ) as client:
+        create_queue: list[SaveTransaction] = list()
+        for entry in stmt.lines:
+            if entry.date is None:
+                _LOG.warning(f"The transaction {entry} is missing a date")
+                continue
+            if entry.amount is None:
+                _LOG.warning(f"The transaction {entry} is missing an amount")
+                continue
+            if entry.id is None:
+                _LOG.warning(f"The transaction {entry} is missing an ID")
+                continue
 
-        async with ApiClient(
-            api_url,
-            auth=BearerAuth(api_token),
-            rate_limit=rate_limit,
-        ) as client:
-            pass
+            st = SaveTransaction(
+                account_id=ABCDE,
+                date=entry.date.date(),
+                amount=int(entry.amount * 1000),
+                memo=entry.memo,
+                import_id=Id(entry.id),
+            )
+            create_queue.append(st)
+
+        if len(create_queue) > 0:
+            tw = SaveTransactionsWrapper(None, create_queue)
+            if not dry_run:
+                await client.post(CreateTransactions(budget_id), tw)
 
 
 async def assign_payees(matches: Namespace, config: Config) -> None:

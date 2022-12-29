@@ -44,23 +44,21 @@ class Builder:
             memo = None
 
         st = SaveTransaction(
-            self.t.id_,
-            self.t.account_id,
-            self.t.date,
-            self.t.amount,
+            account_id=self.t.account_id,
+            date=self.t.date,
+            amount=self.t.amount,
             payee_id=self.payee_id,
             payee_name=self.payee_name,
             category_id=self.category_id,
             approved=self.approved,
             memo=memo,
+            id_=self.t.id_,
         )
         return st
 
 
 @dataclass
 class SaveTransaction(DataClassDictMixin):
-    id_: Id
-
     account_id: Id
     date: date
     amount: int
@@ -73,6 +71,7 @@ class SaveTransaction(DataClassDictMixin):
     flag_color: Optional[str] = field(default=None)
     import_id: Optional[Id] = field(default=None)
     # subtransactions: Optional[List[SaveSubtransaction]]
+    id_: Id | None = field(default=None)
 
     @classmethod
     def builder(cls, t: Transaction) -> Builder:

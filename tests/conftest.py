@@ -46,6 +46,11 @@ async def ynab_default_budget(ynab_api_token_id: str) -> str:
 
 
 @pytest_asyncio.fixture(scope="session")
+async def ynab_test_budget(ynab_api_token_id: str) -> str:
+    return await one_password_get_item(ynab_api_token_id, "test budget")
+
+
+@pytest_asyncio.fixture(scope="session")
 async def ynab_api_client(
     ynab_api_url: str,
     ynab_api_token: str,

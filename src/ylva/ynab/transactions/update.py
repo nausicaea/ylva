@@ -11,12 +11,12 @@ from ..model.transaction import Transaction
 
 
 @dataclass
-class TransactionWrapper(DataClassDictMixin):
+class _TransactionResponse(DataClassDictMixin):
     transaction: Transaction
 
 
 @dataclass
-class TransactionResponse(ResponseWrapper[TransactionWrapper], DataClassJSONMixin):
+class TransactionResponse(ResponseWrapper[_TransactionResponse], DataClassJSONMixin):
     pass
 
 

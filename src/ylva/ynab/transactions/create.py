@@ -1,14 +1,15 @@
+from collections.abc import Sized
 from dataclasses import dataclass, field
-from typing import List, Optional, Type
+from typing import Any, Dict, List, Optional, Set, Type
 
-from mashumaro import DataClassDictMixin
+from mashumaro.mixins.dict import DataClassDictMixin
 from mashumaro.mixins.json import DataClassJSONMixin
 from reidun.endpoint import ApiEndpoint, ParamsBuilder
 
 from .. import ResponseWrapper
 from ..model import Id
+from ..model.save_transaction import SaveTransaction
 from ..model.transaction import Transaction
-from ..model.update_transaction import UpdateTransaction
 
 
 @dataclass
@@ -28,22 +29,36 @@ class SaveTransactionsResponse(
 
 
 @dataclass
-class UpdateTransactionsWrapper(DataClassJSONMixin):
-    transactions: List[UpdateTransaction]
+class SaveTransactionsWrapper(DataClassJSONMixin):
+    transaction: Optional[SaveTransaction]
+    transactions: List[SaveTransaction]
+
+    def __post_serialize__(self, d: Dict[Any, Any]) -> Dict[Any, Any]:
+        none_value_keys: Set[str] = set()
+        for k, v in d.items():
+            if v is None:
+                none_value_keys.add(k)
+            elif isinstance(v, Sized) and len(v) == 0:
+                none_value_keys.add(k)
+
+        for k in none_value_keys:
+            d.pop(k)
+
+        return d
 
 
 @dataclass
-class UpdateMultipleTransactions(ApiEndpoint):
+class CreateTransactions(ApiEndpoint):
     budget_id: str
 
     def params(self) -> ParamsBuilder:
         raise NotImplementedError()
 
     def path(self) -> str:
-        return f"/v1/budgets/{self.budget_id}/transactions"
+        return f"/v1/budgets/{self.budget_id}/transactions/import"
 
     def response_data_type(self) -> Type[SaveTransactionsResponse]:
         return SaveTransactionsResponse
 
-    def request_data_type(self) -> Type[UpdateTransactionsWrapper]:
-        return UpdateTransactionsWrapper
+    def request_data_type(self) -> Type[SaveTransactionsWrapper]:
+        return SaveTransactionsWrapper
