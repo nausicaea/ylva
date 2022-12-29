@@ -5,7 +5,6 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import List, Optional
 
-from ofxstatement import plugin, ui
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
@@ -64,51 +63,55 @@ async def _transaction_wrapper(
 
 
 async def import_statement(matches: Namespace, config: Config) -> None:
-    dry_run: bool = matches.dry_run
-    format_: str = matches.format
-    file: Path = matches.file
+    raise NotImplementedError()
 
-    rate_limit: Optional[float] = config.rate_limit
-    api_url: str = config.api_url
-    api_token: str = await get_api_token(config)
-    budget_id: str = config.budget_id
 
-    appui = ui.UI()
-    plg = plugin.get_plugin(format_, appui, dict())
-    prs = plg.get_parser(str(file))
-    stmt = prs.parse()
-    stmt.assert_valid()
-
-    async with ApiClient(
-        api_url,
-        auth=BearerAuth(api_token),
-        rate_limit=rate_limit,
-    ) as client:
-        create_queue: list[SaveTransaction] = list()
-        for entry in stmt.lines:
-            if entry.date is None:
-                _LOG.warning(f"The transaction {entry} is missing a date")
-                continue
-            if entry.amount is None:
-                _LOG.warning(f"The transaction {entry} is missing an amount")
-                continue
-            if entry.id is None:
-                _LOG.warning(f"The transaction {entry} is missing an ID")
-                continue
-
-            st = SaveTransaction(
-                account_id=ABCDE,
-                date=entry.date.date(),
-                amount=int(entry.amount * 1000),
-                memo=entry.memo,
-                import_id=Id(entry.id),
-            )
-            create_queue.append(st)
-
-        if len(create_queue) > 0:
-            tw = SaveTransactionsWrapper(None, create_queue)
-            if not dry_run:
-                await client.post(CreateTransactions(budget_id), tw)
+# async def import_statement(matches: Namespace, config: Config) -> None:
+#     dry_run: bool = matches.dry_run
+#     format_: str = matches.format
+#     file: Path = matches.file
+#
+#     rate_limit: Optional[float] = config.rate_limit
+#     api_url: str = config.api_url
+#     api_token: str = await get_api_token(config)
+#     budget_id: str = config.budget_id
+#
+#     appui = ui.UI()
+#     plg = plugin.get_plugin(format_, appui, dict())
+#     prs = plg.get_parser(str(file))
+#     stmt = prs.parse()
+#     stmt.assert_valid()
+#
+#     async with ApiClient(
+#         api_url,
+#         auth=BearerAuth(api_token),
+#         rate_limit=rate_limit,
+#     ) as client:
+#         create_queue: list[SaveTransaction] = list()
+#         for entry in stmt.lines:
+#             if entry.date is None:
+#                 _LOG.warning(f"The transaction {entry} is missing a date")
+#                 continue
+#             if entry.amount is None:
+#                 _LOG.warning(f"The transaction {entry} is missing an amount")
+#                 continue
+#             if entry.id is None:
+#                 _LOG.warning(f"The transaction {entry} is missing an ID")
+#                 continue
+#
+#             st = SaveTransaction(
+#                 account_id=ABCDE,
+#                 date=entry.date.date(),
+#                 amount=int(entry.amount * 1000),
+#                 memo=entry.memo,
+#                 import_id=Id(entry.id),
+#             )
+#             create_queue.append(st)
+#
+#         if len(create_queue) > 0:
+#             tw = SaveTransactionsWrapper(None, create_queue)
+#             if not dry_run:
+#                 await client.post(CreateTransactions(budget_id), tw)
 
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
@@ -196,8 +199,10 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
         )
 
         if weekwise:
-            weekwise_payees = convert_a_to_b(config.weekwise_payees, payee_lut)
-            week_no_to_category = convert_ata_to_atb(
+            weekwise_payees: list[Id] = convert_a_to_b(
+                config.weekwise_payees, payee_lut
+            )
+            week_no_to_category: dict[int, Id] = convert_ata_to_atb(
                 config.week_no_to_category, category_lut
             )
         else:
