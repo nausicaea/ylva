@@ -20,9 +20,9 @@ class Category(DataClassDictMixin):
     goal_creation_month: str
     goal_target: int
     goal_target_month: str
-    goal_percentage_complete: int
-    goal_months_to_budget: int
-    goal_under_funded: int
-    goal_overall_funded: int
-    goal_overall_left: int
+    goal_percentage_complete: int | None
+    goal_months_to_budget: int | None
+    goal_under_funded: int | None
+    goal_overall_funded: int | None
+    goal_overall_left: int | None
     deleted: bool
