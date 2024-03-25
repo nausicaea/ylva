@@ -20,6 +20,7 @@ class Config(DataClassYAMLMixin):
     testing_budget_id: Optional[str] = field(default=None)
     api_token: Optional[str] = field(default=None)
     op_item_id: Optional[str] = field(default=None)
+    op_item_ref: Optional[str] = field(default=None)
     rate_limit: Optional[float] = field(default=None)
 
     def save(self, dst: Path) -> None:

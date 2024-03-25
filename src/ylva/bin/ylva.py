@@ -3,15 +3,19 @@ import logging
 import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
 
 from .. import DEFAULT_CONFIG_FILE, week_number
 from ..config import Config
-from ..conversion import (convert_a_to_b, convert_ata_to_atb,
-                          convert_ata_to_btb, create_nti_lut)
+from ..conversion import (
+    convert_a_to_b,
+    convert_ata_to_atb,
+    convert_ata_to_btb,
+    create_nti_lut,
+)
 from ..get_api_token import get_api_token
 from ..list_categories import list_categories
 from ..list_payees import list_payees
@@ -23,14 +27,18 @@ from ..ynab.model.payee import Payee
 from ..ynab.model.save_transaction import SaveTransaction
 from ..ynab.model.transaction import Transaction
 from ..ynab.model.update_transaction import UpdateTransaction
-from ..ynab.transactions.create import (CreateTransactions,
-                                        SaveTransactionsWrapper)
+from ..ynab.transactions.create import CreateTransactions, SaveTransactionsWrapper
 from ..ynab.transactions.list import TransactionType
-from ..ynab.transactions.update_multiple import (UpdateMultipleTransactions,
-                                                 UpdateTransactionsWrapper)
+from ..ynab.transactions.update_multiple import (
+    UpdateMultipleTransactions,
+    UpdateTransactionsWrapper,
+)
 from . import start
 
 _LOG: logging.Logger = logging.getLogger(f"{__package__}.ylva")
+_PAYEE_START_INDICATOR: str = "bezugsort:"
+_PAYEE_START_OFFSET: int = len(_PAYEE_START_INDICATOR)
+_PAYEE_STOP_INDICATOR: str = "transaktionsdatum:"
 
 
 async def _payee_wrapper(client: ApiClient, budget_id: str) -> list[Payee]:
@@ -116,6 +124,7 @@ async def import_statement(matches: Namespace, config: Config) -> None:
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
+    create_payees: bool = matches.create_payees
     rate_limit: Optional[float] = config.rate_limit
     api_url: str = config.api_url
     api_token: str = await get_api_token(config)
@@ -143,10 +152,11 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
             if not predicate_transaction(t, f):
                 continue
 
+            memo_lower = t.memo.lower() if t.memo is not None else None
             for payee in payees:
                 if payee.deleted:
                     continue
-                elif t.memo is not None and payee.name.lower() in t.memo.lower():
+                elif memo_lower is not None and payee.name.lower() in memo_lower:
                     _LOG.info(
                         f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to payee {payee.name}"
                     )
@@ -159,9 +169,29 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
                     update_queue.append(ut)
                     break
             else:
-                _LOG.warning(
+                _LOG.info(
                     f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was not matched to a payee"
                 )
+                if (
+                    create_payees
+                    and memo_lower is not None
+                    and _PAYEE_START_INDICATOR in memo_lower
+                ):
+                    new_payee_start = (
+                        memo_lower.find(_PAYEE_START_INDICATOR) + _PAYEE_START_OFFSET
+                    )
+                    new_payee_stop = memo_lower.find(_PAYEE_STOP_INDICATOR) - 1
+                    if t.memo is not None:
+                        new_payee_name = t.memo[new_payee_start:new_payee_stop].strip()
+                        _LOG.info(
+                            f"CREATE: Transaction {t.id_} ({t.date} - {t.amount / 1000}) will receive a new payee: {new_payee_name}"
+                        )
+                        ut = (
+                            UpdateTransaction.builder(t)
+                            .with_payee_name(new_payee_name)
+                            .build()
+                        )
+                        update_queue.append(ut)
 
         if len(update_queue) > 0:
             _LOG.info(
@@ -335,6 +365,12 @@ async def main() -> None:
     )
     payees_parser = assign_sub_parsers.add_parser("payees")
     payees_parser.set_defaults(func=assign_payees)
+    payees_parser.add_argument(
+        "-c",
+        "--create-payees",
+        action="store_true",
+        help="If the transactions contain unknown payees, create them in YNAB",
+    )
     categories_parser = assign_sub_parsers.add_parser("categories")
     categories_parser.set_defaults(func=assign_categories)
     categories_parser.add_argument(
