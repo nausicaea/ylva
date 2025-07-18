@@ -343,7 +343,7 @@ async fn main() -> anyhow::Result<()> {
                 ignore_category,
                 rate_limit: config.rate_limit,
                 api_url: &config.api_url,
-                api_token: config.api_token()?,
+                api_token: &config.api_token().await?,
                 budget_id: &config.budget_id,
             })
             .await?
@@ -361,7 +361,7 @@ async fn main() -> anyhow::Result<()> {
                 create_payees,
                 rate_limit: config.rate_limit,
                 api_url: &config.api_url,
-                api_token: config.api_token()?,
+                api_token: &config.api_token().await?,
                 budget_id: &config.budget_id,
             })
             .await?
@@ -379,7 +379,7 @@ async fn main() -> anyhow::Result<()> {
                 weekwise,
                 rate_limit: config.rate_limit,
                 api_url: &config.api_url,
-                api_token: config.api_token()?,
+                api_token: &config.api_token().await?,
                 budget_id: &config.budget_id,
             })
             .await?
