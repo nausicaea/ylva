@@ -1,6 +1,8 @@
 use clap::Parser;
 use tracing::info;
 
+use crate::actions::{ApproveSpec, AssignCategoriesSpec, AssignPayeesSpec, approve, assign_categories, assign_payees};
+
 pub mod model {
     pub mod ynab {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, clap::ValueEnum)]
@@ -37,25 +39,67 @@ pub mod actions {
     }
 
     #[derive(Debug, thiserror::Error)]
-    pub enum Error {
+    pub enum Error {}
+
+    #[derive(Debug)]
+    pub struct ApproveSpec<'a> {
+        pub dry_run: bool,
+        pub diff: bool,
+        pub ignore_cleared: bool,
+        pub ignore_payee: bool,
+        pub ignore_category: bool,
+        pub rate_limit: Option<f32>,
+        pub api_url: &'a str,
+        pub api_token: &'a str,
+        pub budget_id: &'a str,
     }
 
-    pub async fn approve(ignore_cleared: bool, ignore_payee: bool, ignore_category: bool, config: &Config) -> Result<(), Error> {
+    pub async fn approve(spec: &ApproveSpec<'_>) -> Result<(), Error> {
         todo!()
     }
 
-    pub async fn assign_payees(filter: TransactionType, force: bool, create_payees: bool, config: &Config) -> Result<(), Error> {
+    #[derive(Debug)]
+    pub struct AssignPayeesSpec<'a> {
+        pub dry_run: bool,
+        pub diff: bool,
+        pub filter: TransactionType,
+        pub force: bool,
+        pub create_payees: bool,
+        pub rate_limit: Option<f32>,
+        pub api_url: &'a str,
+        pub api_token: &'a str,
+        pub budget_id: &'a str,
+    }
+
+    pub async fn assign_payees(spec: &AssignPayeesSpec<'_>) -> Result<(), Error> {
         todo!()
     }
 
-    pub async fn assign_categories(filter: TransactionType, force: bool, weekwise: bool, config: &Config) -> Result<(), Error> {
+    #[derive(Debug)]
+    pub struct AssignCategoriesSpec<'a> {
+        pub dry_run: bool,
+        pub diff: bool,
+        pub filter: TransactionType,
+        pub force: bool,
+        pub weekwise: bool,
+        pub rate_limit: Option<f32>,
+        pub api_url: &'a str,
+        pub api_token: &'a str,
+        pub budget_id: &'a str,
+    }
+
+    pub async fn assign_categories(spec: &AssignCategoriesSpec<'_>) -> Result<(), Error> {
         todo!()
     }
 }
 
 pub mod config {
-    use std::{collections::HashMap, path::{Path, PathBuf}};
+    use std::{
+        collections::HashMap,
+        path::{Path, PathBuf}, process::Output, string::FromUtf8Error,
+    };
 
+    use tokio::process::Command;
     use tracing::warn;
 
     #[derive(Debug, thiserror::Error)]
@@ -68,20 +112,26 @@ pub mod config {
         Serializing(PathBuf, #[source] serde_yaml::Error),
         #[error("Deserialization error for {}: {}", .0.display(), .1)]
         Deserializing(PathBuf, #[source] serde_yaml::Error),
+        #[error("Missing YNAB API token. One of 'api_token', 'op_item_id', or 'op_item_ref' must be defined in the config")]
+        NoApiToken,
+        #[error("Command {} failed with: {:?}", .0.display(), .1)]
+        Command(PathBuf, Output),
+        #[error(transparent)]
+        StringConversion(#[from] FromUtf8Error),
     }
 
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
     pub struct Config {
-        payee_to_category: HashMap<String, String>,
-        weekwise_payees: Vec<String>,
-        week_no_to_category: HashMap<u32, String>,
-        api_url: String,
-        budget_id: String,
-        testing_budget_id: Option<String>,
+        pub payee_to_category: HashMap<String, String>,
+        pub weekwise_payees: Vec<String>,
+        pub week_no_to_category: HashMap<u32, String>,
+        pub api_url: String,
+        pub budget_id: String,
+        pub testing_budget_id: Option<String>,
         api_token: Option<String>,
         op_item_id: Option<String>,
         op_item_ref: Option<String>,
-        rate_limit: Option<f32>,
+        pub rate_limit: Option<f32>,
     }
 
     impl Default for Config {
@@ -103,13 +153,11 @@ pub mod config {
 
     impl Config {
         fn project_dirs() -> Result<directories::ProjectDirs, Error> {
-            directories::ProjectDirs::from("net", "nausicaea", "ylva")
-                .ok_or(Error::NoProjectDirs)
+            directories::ProjectDirs::from("net", "nausicaea", "ylva").ok_or(Error::NoProjectDirs)
         }
 
         pub fn default_path() -> Result<PathBuf, Error> {
-            Self::project_dirs()
-                .map(|pd| pd.config_dir().join("config.yml"))
+            Self::project_dirs().map(|pd| pd.config_dir().join("config.yml"))
         }
 
         pub fn create(p: &Path) -> Result<Self, Error> {
@@ -138,18 +186,68 @@ pub mod config {
             };
 
             if let Some(parent) = p.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| Error::Io(p.to_path_buf(), e))?;
+                std::fs::create_dir_all(parent).map_err(|e| Error::Io(p.to_path_buf(), e))?;
             }
 
-            let file = std::fs::File::create(&p)
-                    .map_err(|e| Error::Io(p.to_path_buf(), e))?;
+            let file = std::fs::File::create(&p).map_err(|e| Error::Io(p.to_path_buf(), e))?;
 
             serde_yaml::to_writer(std::io::BufWriter::new(file), self)
                 .map_err(|e| Error::Serializing(p.to_path_buf(), e))?;
 
             Ok(())
         }
+
+        /// Retrieve the API authentication token from configuration.
+        /// This allows you to keep API token in your secure vault instead
+        /// of storing it in clear text
+        pub async fn api_token(&self) -> Result<String, Error> {
+            if let Some(api_token) = &self.api_token {
+                return Ok(api_token.to_string());
+            } else if let Some(op_item_id) = &self.op_item_id {
+                return Ok(one_password_get_item(op_item_id, "credential").await?);
+            } else if let Some(op_item_ref) = &self.op_item_ref {
+                return Ok(one_password_read(op_item_ref).await?);
+            }
+
+            Err(Error::NoApiToken)
+        }
+    }
+
+    /// Retrieve a field from an item in the One Password vault
+    async fn one_password_get_item(item_id: &str, field_name: &str) -> Result<String, Error> {
+        let one_password = PathBuf::from("op");
+        let output = Command::new(&one_password)
+            .arg("item")
+            .arg("get")
+            .arg(item_id)
+            .arg("--fields")
+            .arg(format!("label={field_name}"))
+            .output()
+            .await
+            .map_err(|e| Error::Io(one_password.clone(), e))?;
+
+        if !output.status.success() {
+            return Err(Error::Command(one_password.clone(), output));
+        }
+
+        Ok(String::from_utf8(output.stdout)?)
+    }
+
+    /// Retrieve a field by reference from the One Password vault
+    async fn one_password_read(item_ref: &str) -> Result<String, Error> {
+        let one_password = PathBuf::from("op");
+        let output = Command::new(&one_password)
+            .arg("read")
+            .arg(item_ref)
+            .output()
+            .await
+            .map_err(|e| Error::Io(one_password.clone(), e))?;
+
+        if !output.status.success() {
+            return Err(Error::Command(one_password.clone(), output));
+        }
+
+        Ok(String::from_utf8(output.stdout)?)
     }
 }
 
@@ -158,12 +256,12 @@ struct Args {
     /// Disable any state-changing actions (i.e. don't send POST, PUT, UPDATE, or DELETE requests
     /// to YNAB)
     #[arg(short = 'n', long)]
-    dry_run: bool,
+    pub dry_run: bool,
     /// Display the transactions that will be modified, and show the modified properties
     #[arg(short, long)]
-    diff: bool,
+    pub diff: bool,
     #[command(subcommand)]
-    command: Command,
+    pub command: Command,
 }
 
 /// Choose the budget action
@@ -232,9 +330,60 @@ async fn main() -> anyhow::Result<()> {
     }
 
     match args.command {
-        Command::Approve { ignore_cleared, ignore_category, ignore_payee } => actions::approve(ignore_cleared, ignore_category, ignore_payee, &config).await?,
-        Command::Assign { filter, force, command: AssignCommand::Payees { create_payees } } => actions::assign_payees(filter, force, create_payees, &config).await?,
-        Command::Assign { filter, force, command: AssignCommand::Categories { weekwise } } => actions::assign_categories(filter, force, weekwise, &config).await?,
+        Command::Approve {
+            ignore_cleared,
+            ignore_category,
+            ignore_payee,
+        } => {
+            approve(&ApproveSpec {
+                dry_run: args.dry_run,
+                diff: args.diff,
+                ignore_cleared,
+                ignore_payee,
+                ignore_category,
+                rate_limit: config.rate_limit,
+                api_url: &config.api_url,
+                api_token: config.api_token()?,
+                budget_id: &config.budget_id,
+            })
+            .await?
+        }
+        Command::Assign {
+            filter,
+            force,
+            command: AssignCommand::Payees { create_payees },
+        } => {
+            assign_payees(&AssignPayeesSpec {
+                dry_run: args.dry_run,
+                diff: args.diff,
+                filter,
+                force,
+                create_payees,
+                rate_limit: config.rate_limit,
+                api_url: &config.api_url,
+                api_token: config.api_token()?,
+                budget_id: &config.budget_id,
+            })
+            .await?
+        }
+        Command::Assign {
+            filter,
+            force,
+            command: AssignCommand::Categories { weekwise },
+        } => {
+            assign_categories(&AssignCategoriesSpec {
+                dry_run: args.dry_run,
+                diff: args.diff,
+                filter,
+                force,
+                weekwise,
+                rate_limit: config.rate_limit,
+                api_url: &config.api_url,
+                api_token: config.api_token()?,
+                budget_id: &config.budget_id,
+            })
+            .await?
+        }
     }
 
     Ok(())
