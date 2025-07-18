@@ -26,6 +26,18 @@ class TransactionType(Enum):
     UNCATEGORIZED = "uncategorized"
     UNAPPROVED = "unapproved"
 
+    @classmethod
+    def from_str(cls, value: Optional[str]) -> Optional["TransactionType"]:
+        if value is None:
+            return None
+
+        value_lower = value.lower()
+        for member in cls:
+            if member.value.lower() == value_lower:
+                return member
+
+        return None
+
 
 @dataclass
 class Params(ParamsBuilder):

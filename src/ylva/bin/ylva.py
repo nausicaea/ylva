@@ -1,10 +1,13 @@
 import logging
+import json
 import sys
 from argparse import ArgumentParser, Namespace
 from typing import List, Optional
 
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
+
+from ylva.bkb.memo import Memo
 
 from .. import DEFAULT_CONFIG_FILE, week_number
 from ..config import Config
@@ -101,7 +104,7 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
                 if payee.deleted:
                     continue
                 elif memo_lower is not None and payee.name.lower() in memo_lower:
-                    _LOG.info(
+                    _LOG.debug(
                         f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to payee {payee.name}"
                     )
                     ut = (
@@ -113,29 +116,46 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
                     update_queue.append(ut)
                     break
             else:
-                _LOG.info(
+                _LOG.debug(
                     f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was not matched to a payee"
                 )
-                if (
-                    create_payees
-                    and memo_lower is not None
-                    and _PAYEE_START_INDICATOR in memo_lower
-                ):
-                    new_payee_start = (
-                        memo_lower.find(_PAYEE_START_INDICATOR) + _PAYEE_START_OFFSET
-                    )
-                    new_payee_stop = memo_lower.find(_PAYEE_STOP_INDICATOR) - 1
-                    if t.memo is not None:
-                        new_payee_name = t.memo[new_payee_start:new_payee_stop].strip()
-                        _LOG.info(
-                            f"CREATE: Transaction {t.id_} ({t.date} - {t.amount / 1000}) will receive a new payee: {new_payee_name}"
-                        )
-                        ut = (
-                            UpdateTransaction.builder(t)
-                            .with_payee_name(new_payee_name)
-                            .build()
-                        )
-                        update_queue.append(ut)
+                if create_payees and t.memo is not None:
+                    index_left_brace = t.memo.find("{")
+                    index_right_brace = t.memo.rfind("}")
+
+                    if index_left_brace >= 0 and index_left_brace < index_right_brace:
+                        probable_json_data = t.memo[index_left_brace:index_right_brace]
+                        try:
+                            memo_structured = Memo.from_dict(
+                                json.loads(probable_json_data)
+                            )
+                            unstructured_lower = (
+                                memo_structured.unstructured.lower()
+                                if memo_structured.unstructured is not None
+                                else ""
+                            )
+                            new_payee_start = (
+                                unstructured_lower.find(_PAYEE_START_INDICATOR)
+                                + _PAYEE_START_OFFSET
+                            )
+                            new_payee_stop = (
+                                unstructured_lower.find(_PAYEE_STOP_INDICATOR) - 1
+                            )
+                            if memo_structured.unstructured is not None:
+                                new_payee_name = memo_structured.unstructured[
+                                    new_payee_start:new_payee_stop
+                                ].strip()
+                                _LOG.info(
+                                    f"CREATE: Transaction {t.id_} ({t.date} - {t.amount / 1000}) will receive a new payee: {new_payee_name}"
+                                )
+                                ut = (
+                                    UpdateTransaction.builder(t)
+                                    .with_payee_name(new_payee_name)
+                                    .build()
+                                )
+                                update_queue.append(ut)
+                        except Exception as ex:
+                            _LOG.exception("Failed to parse memo data", exc_info=ex)
 
         if len(update_queue) > 0:
             _LOG.info(
@@ -149,6 +169,8 @@ async def assign_payees(matches: Namespace, config: Config) -> None:
 async def assign_categories(matches: Namespace, config: Config) -> None:
     dry_run: bool = matches.dry_run
     weekwise: bool = matches.weekwise
+    filter: Optional[TransactionType] = matches.filter
+    force: bool = matches.force
     rate_limit: Optional[float] = config.rate_limit
     api_url: str = config.api_url
     api_token: str = await get_api_token(config)
@@ -162,9 +184,8 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
         payees = await _payee_wrapper(client, budget_id)
         categories = await _category_wrapper(client, budget_id)
 
-        transactions = await _transaction_wrapper(
-            client, budget_id, TransactionType.UNCATEGORIZED
-        )
+        transactions = await _transaction_wrapper(client, budget_id, filter)
+        _LOG.info(f"YNAB transmitted {len(transactions)} transactions")
 
         payee_lut = create_nti_lut(payees)
         category_lut = create_nti_lut(categories)
@@ -184,20 +205,24 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
             week_no_to_category = dict()
 
         update_queue: List[UpdateTransaction] = list()
-        f = (
-            TFilter.NOT_RECONCILED
-            | TFilter.NO_TRANSFER
-            | TFilter.NO_CATEGORY
-            | TFilter.ASSIGNED_PAYEE
-        )
-        for t in transactions:
-            if not predicate_transaction(t, f):
-                continue
+        if force:
+            f = TFilter.NO_TRANSFER | TFilter.ASSIGNED_PAYEE
+        else:
+            f = (
+                TFilter.NOT_RECONCILED
+                | TFilter.NO_TRANSFER
+                | TFilter.NO_CATEGORY
+                | TFilter.ASSIGNED_PAYEE
+            )
 
+        transactions = [t for t in transactions if predicate_transaction(t, f)]
+        _LOG.info(f"Categorizing {len(transactions)} transactions")
+
+        for t in transactions:
             if t.payee_id is not None:
                 if t.payee_id in payee_to_category.keys():
                     ci = payee_to_category[t.payee_id]
-                    _LOG.info(
+                    _LOG.debug(
                         f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to category {ci}"
                     )
                     ut = UpdateTransaction.builder(t).with_category_id(ci).build()
@@ -205,13 +230,13 @@ async def assign_categories(matches: Namespace, config: Config) -> None:
                 elif weekwise and t.payee_id in weekwise_payees:
                     week_no = week_number(t.date)
                     ci = week_no_to_category[week_no]
-                    _LOG.info(
+                    _LOG.debug(
                         f"MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was matched to week {week_no} and thus to category {ci}"
                     )
                     ut = UpdateTransaction.builder(t).with_category_id(ci).build()
                     update_queue.append(ut)
             else:
-                _LOG.warning(
+                _LOG.info(
                     f"NO MATCH: Transaction {t.id_} ({t.date} - {t.amount / 1000}) was not matched to a category"
                 )
 
@@ -323,9 +348,23 @@ async def main() -> None:
         action="store_true",
         help="Also iterate over and assign categories for week-wise payees. These will get a different category depending on the transaction date",
     )
+    categories_parser.add_argument(
+        "-f",
+        "--filter",
+        type=TransactionType.from_str,
+        choices=[None] + [t for t in TransactionType],
+        default=TransactionType.UNCATEGORIZED,
+        help="Select which set of transactions to update (case-insensitive)",
+    )
+    categories_parser.add_argument(
+        "-F",
+        "--force",
+        action="store_true",
+        help="Force all found transactions to be recategorized",
+    )
     matches = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     if not DEFAULT_CONFIG_FILE.exists():
         config = Config.create(DEFAULT_CONFIG_FILE)
