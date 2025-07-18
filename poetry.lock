@@ -378,22 +378,6 @@ toml = ["tomli (>=1.1.0) ; python_version < \"3.11\"", "tomli-w (>=1.0)"]
 yaml = ["pyyaml (>=3.13)"]
 
 [[package]]
-name = "mt-940"
-version = "4.30.0"
-description = "A library to parse MT940 files and returns smart Python collections for statistics and manipulation."
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "mt-940-4.30.0.tar.gz", hash = "sha256:da14e2ec84d6c6e85604d2a6b8a800b08ec6000351acde501c41eb662819295c"},
-    {file = "mt_940-4.30.0-py2.py3-none-any.whl", hash = "sha256:66fa0c1e942478fd7970b791be017b1ca46556f54d44115008f3982e97ae0a9b"},
-]
-
-[package.extras]
-docs = ["GitPython (>=2.1.9)", "sphinx (>=1.7.2)", "sphinx2rst"]
-tests = ["flake8", "pytest", "pytest-cache", "pytest-cover", "pytest-flake8", "pyyaml"]
-
-[[package]]
 name = "multidict"
 version = "6.6.3"
 description = "multidict implementation"
@@ -517,6 +501,61 @@ files = [
 typing-extensions = {version = ">=4.1.0", markers = "python_version < \"3.11\""}
 
 [[package]]
+name = "ofxstatement"
+version = "0.9.2"
+description = "Tool to convert proprietary bank statement to OFX format, suitable for importing to GnuCash"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "ofxstatement-0.9.2-py3-none-any.whl", hash = "sha256:4a90c5406b3cd07f7f06d4645ce7e1b574d09531de25cb9c0f4d6819eff55b01"},
+    {file = "ofxstatement-0.9.2.tar.gz", hash = "sha256:5c1b7b85b7d7bc2397ab0523aec0e702a27ae574ebd550743d951ffed4117152"},
+]
+
+[package.dependencies]
+platformdirs = "*"
+
+[[package]]
+name = "ofxstatement-bkb"
+version = "0.1.0"
+description = "BKB plugin for ofxstatement"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+ofxstatement = "*"
+
+[package.extras]
+test = ["pytest"]
+
+[package.source]
+type = "git"
+url = "https://github.com/nausicaea/ofxstatement-bkb.git"
+reference = "HEAD"
+resolved_reference = "8a2d088594d5cb8876713727ca5c78a71ded43b4"
+
+[[package]]
+name = "ofxstatement-iso20022"
+version = "0.8.1"
+description = "ISO-20022 plugin for ofxstatement"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "ofxstatement_iso20022-0.8.1-py3-none-any.whl", hash = "sha256:4a1a35386a659eab3dcebd97370281e14b3ad668b4ac157ef7043c8ef007f79b"},
+    {file = "ofxstatement_iso20022-0.8.1.tar.gz", hash = "sha256:42c6bd100083681f5efec086c0f14d36ee4efc7ce326e95860d7a89f6c8a980b"},
+]
+
+[package.dependencies]
+ofxstatement = "*"
+
+[package.extras]
+test = ["pytest"]
+
+[[package]]
 name = "packaging"
 version = "25.0"
 description = "Core utilities for Python packages"
@@ -527,6 +566,23 @@ files = [
     {file = "packaging-25.0-py3-none-any.whl", hash = "sha256:29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484"},
     {file = "packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f"},
 ]
+
+[[package]]
+name = "platformdirs"
+version = "4.3.8"
+description = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "platformdirs-4.3.8-py3-none-any.whl", hash = "sha256:ff7059bb7eb1179e2685604f4aaf157cfd9535242bd23742eadc3c13542139b4"},
+    {file = "platformdirs-4.3.8.tar.gz", hash = "sha256:3d512d96e16bcb959a814c9f348431070822a6496326a4be0911c40b5a74c2bc"},
+]
+
+[package.extras]
+docs = ["furo (>=2024.8.6)", "proselint (>=0.14)", "sphinx (>=8.1.3)", "sphinx-autodoc-typehints (>=3)"]
+test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=8.3.4)", "pytest-cov (>=6)", "pytest-mock (>=3.14)"]
+type = ["mypy (>=1.14.1)"]
 
 [[package]]
 name = "pluggy"
@@ -986,4 +1042,4 @@ progress = ["tqdm"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "8acd2944f71730073aacca83aa8671f4a570397e3d2ba86f9c1b7bafedccf8b1"
+content-hash = "1cf2b9610a93d290f2cde5beefd530d2baf8d4c6aafea65ee625f6760c1987b5"
