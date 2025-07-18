@@ -1,9 +1,7 @@
-import datetime
 import logging
 import sys
 from argparse import ArgumentParser, Namespace
-from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from reidun.auth_method import BearerAuth
 from reidun.client import ApiClient
@@ -24,10 +22,8 @@ from ..transaction_filter import TFilter, predicate_transaction
 from ..ynab.model import Id
 from ..ynab.model.category import Category
 from ..ynab.model.payee import Payee
-from ..ynab.model.save_transaction import SaveTransaction
 from ..ynab.model.transaction import Transaction
 from ..ynab.model.update_transaction import UpdateTransaction
-from ..ynab.transactions.create import CreateTransactions, SaveTransactionsWrapper
 from ..ynab.transactions.list import TransactionType
 from ..ynab.transactions.update_multiple import (
     UpdateMultipleTransactions,
@@ -68,58 +64,6 @@ async def _transaction_wrapper(
         _LOG.exception("Failed to retrieve transactions", exc_info=ex)
         print(ex.args[0])
         sys.exit(1)
-
-
-async def import_statement(matches: Namespace, config: Config) -> None:
-    raise NotImplementedError()
-
-
-# async def import_statement(matches: Namespace, config: Config) -> None:
-#     dry_run: bool = matches.dry_run
-#     format_: str = matches.format
-#     file: Path = matches.file
-#
-#     rate_limit: Optional[float] = config.rate_limit
-#     api_url: str = config.api_url
-#     api_token: str = await get_api_token(config)
-#     budget_id: str = config.budget_id
-#
-#     appui = ui.UI()
-#     plg = plugin.get_plugin(format_, appui, dict())
-#     prs = plg.get_parser(str(file))
-#     stmt = prs.parse()
-#     stmt.assert_valid()
-#
-#     async with ApiClient(
-#         api_url,
-#         auth=BearerAuth(api_token),
-#         rate_limit=rate_limit,
-#     ) as client:
-#         create_queue: list[SaveTransaction] = list()
-#         for entry in stmt.lines:
-#             if entry.date is None:
-#                 _LOG.warning(f"The transaction {entry} is missing a date")
-#                 continue
-#             if entry.amount is None:
-#                 _LOG.warning(f"The transaction {entry} is missing an amount")
-#                 continue
-#             if entry.id is None:
-#                 _LOG.warning(f"The transaction {entry} is missing an ID")
-#                 continue
-#
-#             st = SaveTransaction(
-#                 account_id=ABCDE,
-#                 date=entry.date.date(),
-#                 amount=int(entry.amount * 1000),
-#                 memo=entry.memo,
-#                 import_id=Id(entry.id),
-#             )
-#             create_queue.append(st)
-#
-#         if len(create_queue) > 0:
-#             tw = SaveTransactionsWrapper(None, create_queue)
-#             if not dry_run:
-#                 await client.post(CreateTransactions(budget_id), tw)
 
 
 async def assign_payees(matches: Namespace, config: Config) -> None:
@@ -378,21 +322,6 @@ async def main() -> None:
         "--weekwise",
         action="store_true",
         help="Also iterate over and assign categories for week-wise payees. These will get a different category depending on the transaction date",
-    )
-    import_parser = sub_parsers.add_parser("import")
-    import_parser.set_defaults(func=import_statement)
-    import_parser.add_argument(
-        "-f",
-        "--format",
-        type=str,
-        choices=["mt940"],
-        default="mt940",
-        help="Select the input file format",
-    )
-    import_parser.add_argument(
-        "file",
-        type=Path,
-        help="Specify the statement file that is to be imported",
     )
     matches = parser.parse_args()
 
