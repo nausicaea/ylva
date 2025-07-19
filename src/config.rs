@@ -1,8 +1,5 @@
 use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-    process::Output,
-    string::FromUtf8Error,
+    collections::HashMap, path::{Path, PathBuf}, process::Output, str::Utf8Error, string::FromUtf8Error
 };
 
 use tokio::process::Command;
@@ -23,7 +20,7 @@ pub enum Error {
     #[error("Command {} failed with: {:?}", .0.display(), .1)]
     Command(PathBuf, Output),
     #[error(transparent)]
-    StringConversion(#[from] FromUtf8Error),
+    StringConversion(#[from] Utf8Error),
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -136,7 +133,7 @@ async fn one_password_get_item(item_id: &str, field_name: &str) -> Result<String
         return Err(Error::Command(one_password.clone(), output));
     }
 
-    Ok(String::from_utf8(output.stdout)?)
+    Ok(str::from_utf8(&output.stdout)?.trim().to_string())
 }
 
 /// Retrieve a field by reference from the One Password vault
@@ -153,5 +150,5 @@ async fn one_password_read(item_ref: &str) -> Result<String, Error> {
         return Err(Error::Command(one_password.clone(), output));
     }
 
-    Ok(String::from_utf8(output.stdout)?)
+    Ok(str::from_utf8(&output.stdout)?.trim().to_string())
 }

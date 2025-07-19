@@ -1,4 +1,4 @@
-use crate::model::ynab::TransactionType;
+use crate::model::ynab::TransactionType as ModelTransactionType;
 
 #[derive(Debug, clap::Parser)]
 pub struct Args {
@@ -56,4 +56,34 @@ pub enum AssignCommand {
         #[arg(short, long)]
         weekwise: bool,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum TransactionType {
+    /// Request all transactions from YNAB
+    All,
+    /// Request only uncategorized transactions from YNAB
+    Uncategorized,
+    /// Request only unapproved transactions from YNAB
+    Unapproved,
+}
+
+impl ToString for TransactionType {
+    fn to_string(&self) -> String {
+        match self {
+            TransactionType::All => "all".into(),
+            TransactionType::Uncategorized => "uncategorized".into(),
+            TransactionType::Unapproved => "unapproved".into(),
+        }
+    }
+}
+
+impl Into<Option<ModelTransactionType>> for TransactionType {
+    fn into(self) -> Option<ModelTransactionType> {
+        match self {
+            TransactionType::All => None,
+            TransactionType::Uncategorized => Some(ModelTransactionType::Uncategorized),
+            TransactionType::Unapproved => Some(ModelTransactionType::Unapproved),
+        }
+    }
 }

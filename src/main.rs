@@ -1,5 +1,5 @@
 use clap::Parser;
-use tracing::info;
+use tracing::{debug, info, trace};
 
 use crate::{
     actions::{ApproveSpec, AssignCategoriesSpec, AssignPayeesSpec, approve, assign_categories, assign_payees},
@@ -7,9 +7,11 @@ use crate::{
 };
 
 pub mod actions;
+pub mod api;
 pub mod args;
 pub mod config;
 pub mod model;
+pub mod rest;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -18,8 +20,10 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
+    debug!("Parsing command line arguments");
     let args = crate::args::Args::parse();
 
+    debug!("Loading configuration data");
     let default_config_path = config::Config::default_path()?;
     let config = if !default_config_path.is_file() {
         config::Config::create(&default_config_path)?
