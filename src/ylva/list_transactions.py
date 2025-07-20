@@ -3,8 +3,11 @@ from typing import Optional, cast
 from reidun.client import ApiClient
 
 from .ynab.model.transaction import Transaction
-from .ynab.transactions.list import (ListTransactions, TransactionsResponse,
-                                     TransactionType)
+from .ynab.transactions.list import (
+    ListTransactions,
+    TransactionsResponse,
+    TransactionType,
+)
 
 
 async def list_transactions(

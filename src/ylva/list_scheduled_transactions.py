@@ -3,8 +3,10 @@ from typing import Optional, cast
 from reidun.client import ApiClient
 
 from .ynab.model.scheduled_transaction import ScheduledTransaction
-from .ynab.scheduled_transactions.list import (ListScheduledTransactions,
-                                               ScheduledTransactionsResponse)
+from .ynab.scheduled_transactions.list import (
+    ListScheduledTransactions,
+    ScheduledTransactionsResponse,
+)
 
 
 async def list_scheduled_transactions(
