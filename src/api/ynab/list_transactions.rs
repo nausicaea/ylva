@@ -1,5 +1,7 @@
+use crate::actions::Error;
 use crate::model::ynab::transaction::Transaction;
 use crate::model::ynab::transaction_type::TransactionType;
+use crate::rest::api_client::ApiClient;
 use crate::rest::endpoint::{ApiEndpoint, ParamsBuilder};
 
 #[derive(Debug)]
@@ -85,4 +87,21 @@ impl<'a> ApiEndpoint for ListTransactions<'a> {
             transaction_type: None,
         }
     }
+}
+
+/// Retrieve a list of transactions from YNAB
+pub async fn list_transactions<T>(
+    client: &mut ApiClient,
+    budget_id: &str,
+    transaction_type: T,
+) -> Result<Vec<Transaction>, Error>
+where
+    T: Into<Option<TransactionType>>,
+{
+    let lt = ListTransactions::new(budget_id);
+    let ltp = ListTransactions::params().with_type(transaction_type).build();
+    let transactions = client.get(lt, ltp)
+        .await?;
+
+    Ok(transactions.data.transactions)
 }

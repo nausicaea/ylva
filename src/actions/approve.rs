@@ -1,8 +1,9 @@
 use tracing::{debug, info, instrument};
-use crate::actions;
-use crate::actions::{Error, TransactionFilter};
+use crate::actions::Error;
+use crate::api::ynab::list_transactions;
 use crate::api::ynab::update_transactions::{TransactionUpdate, UpdateMultipleTransactions, UpdateTransactionsWrapper};
 use crate::args::TransactionType;
+use crate::model::ynab::transaction_filter::TransactionFilter;
 use crate::rest::api_client::ApiClient;
 use crate::rest::authorization::BearerAuthz;
 
@@ -39,7 +40,7 @@ pub async fn approve(spec: &ApproveSpec<'_>) -> Result<(), Error> {
     debug!("Creating the REST API client");
     let mut client = ApiClient::new(spec.api_url, BearerAuthz::new(spec.api_token), spec.rate_limit)?;
 
-    let transactions = actions::list_transactions(&mut client, spec.budget_id, TransactionType::Unapproved).await?;
+    let transactions = list_transactions::list_transactions(&mut client, spec.budget_id, TransactionType::Unapproved).await?;
     info!("YNAB transmitted {} transactions", transactions.len());
 
     let mut filter = !(TransactionFilter::RECONCILED | TransactionFilter::TRANSFER);

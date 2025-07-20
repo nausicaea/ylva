@@ -7,6 +7,8 @@ use ylva::{
 use ylva::actions::approve::{approve, ApproveSpec};
 use ylva::actions::assign_categories::{assign_categories, AssignCategoriesSpec};
 use ylva::actions::assign_payees::{assign_payees, AssignPayeesSpec};
+use ylva::args::Args;
+use ylva::config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -16,14 +18,14 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     debug!("Parsing command line arguments");
-    let args = ylva::args::Args::parse();
+    let args = Args::parse();
 
     debug!("Loading configuration data");
-    let default_config_path = ylva::config::Config::default_path()?;
+    let default_config_path = Config::default_path()?;
     let config = if !default_config_path.is_file() {
-        ylva::config::Config::create(&default_config_path)?
+        Config::create(&default_config_path)?
     } else {
-        ylva::config::Config::load(&default_config_path)?
+        Config::load(&default_config_path)?
     };
 
     if args.dry_run {
