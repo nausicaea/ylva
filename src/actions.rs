@@ -90,7 +90,7 @@ impl TransactionFilter {
             !self.contains(TransactionFilter::ASSIGNED_MEMO) && t.memo.is_none(),
         ];
 
-        successes.into_iter().all(|f| *f)
+        successes.iter().all(|f| *f)
     }
 }
 

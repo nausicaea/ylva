@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap, path::{Path, PathBuf}, process::Output, str::Utf8Error, string::FromUtf8Error
+    collections::HashMap, path::{Path, PathBuf}, process::Output, str::Utf8Error
 };
 
 use tokio::process::Command;
@@ -107,9 +107,9 @@ impl Config {
         if let Some(api_token) = &self.api_token {
             return Ok(api_token.to_string());
         } else if let Some(op_item_id) = &self.op_item_id {
-            return Ok(one_password_get_item(op_item_id, "credential").await?);
+            return one_password_get_item(op_item_id, "credential").await;
         } else if let Some(op_item_ref) = &self.op_item_ref {
-            return Ok(one_password_read(op_item_ref).await?);
+            return one_password_read(op_item_ref).await;
         }
 
         Err(Error::NoApiToken)

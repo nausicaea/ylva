@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::model::ynab::TransactionType as ModelTransactionType;
 
 #[derive(Debug, clap::Parser)]
@@ -68,19 +69,19 @@ pub enum TransactionType {
     Unapproved,
 }
 
-impl ToString for TransactionType {
-    fn to_string(&self) -> String {
+impl Display for TransactionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransactionType::All => "all".into(),
-            TransactionType::Uncategorized => "uncategorized".into(),
-            TransactionType::Unapproved => "unapproved".into(),
+            TransactionType::All => write!(f, "all"),
+            TransactionType::Uncategorized => write!(f, "uncategorized"),
+            TransactionType::Unapproved => write!(f, "unapproved"),
         }
     }
 }
 
-impl Into<Option<ModelTransactionType>> for TransactionType {
-    fn into(self) -> Option<ModelTransactionType> {
-        match self {
+impl From<TransactionType> for Option<ModelTransactionType> {
+    fn from(val: TransactionType) -> Self {
+        match val {
             TransactionType::All => None,
             TransactionType::Uncategorized => Some(ModelTransactionType::Uncategorized),
             TransactionType::Unapproved => Some(ModelTransactionType::Unapproved),

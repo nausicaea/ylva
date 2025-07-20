@@ -1,4 +1,3 @@
-use crate::{rest::ApiEndpoint};
 
 pub mod update_transactions {
     use crate::model::ynab::Transaction;
@@ -136,7 +135,7 @@ pub mod update_transactions {
         type RequestDataType = UpdateTransactionsWrapper;
 
         fn params() -> Self::Params {
-            ()
+
         }
 
         fn path(&self) -> String {

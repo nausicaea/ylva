@@ -1,5 +1,5 @@
 use clap::Parser;
-use tracing::{debug, info, trace};
+use tracing::{debug, info};
 
 use ylva::{
     actions::{ApproveSpec, AssignCategoriesSpec, AssignPayeesSpec, approve, assign_categories, assign_payees},

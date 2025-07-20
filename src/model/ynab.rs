@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Id(pub String);
 
@@ -16,11 +18,11 @@ pub enum TransactionType {
     Unapproved,
 }
 
-impl ToString for TransactionType {
-    fn to_string(&self) -> String {
+impl Display for TransactionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransactionType::Uncategorized => "uncategorized".into(),
-            TransactionType::Unapproved => "unapproved".into(),
+            TransactionType::Uncategorized => write!(f, "uncategorized"),
+            TransactionType::Unapproved => write!(f, "unapproved"),
         }
     }
 }
