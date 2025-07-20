@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::model::ynab::TransactionType as ModelTransactionType;
+use crate::model::ynab::transaction_type::TransactionType as ModelTransactionType;
 
 #[derive(Debug, clap::Parser)]
 pub struct Args {

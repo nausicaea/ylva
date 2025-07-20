@@ -2,9 +2,11 @@ use clap::Parser;
 use tracing::{debug, info};
 
 use ylva::{
-    actions::{ApproveSpec, AssignCategoriesSpec, AssignPayeesSpec, approve, assign_categories, assign_payees},
     args::{AssignCommand, Command},
 };
+use ylva::actions::approve::{approve, ApproveSpec};
+use ylva::actions::assign_categories::{assign_categories, AssignCategoriesSpec};
+use ylva::actions::assign_payees::{assign_payees, AssignPayeesSpec};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

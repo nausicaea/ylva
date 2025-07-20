@@ -1,19 +1,10 @@
-use reqwest::{header::{HeaderMap, HeaderName, AUTHORIZATION}, Body, Method, Url};
 use tracing::instrument;
-
-static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Invalid header value for {} header: {:?}", .0, .1)]
-    InvalidHeaderValue(HeaderName, String, #[source] reqwest::header::InvalidHeaderValue),
-    #[error(transparent)]
-    Client(#[from] reqwest::Error),
-    #[error(transparent)]
-    Url(#[from] url::ParseError),
-    #[error(transparent)]
-    Serializing(#[from] serde_json::Error),
-}
+use url::Url;
+use reqwest::{Body, Method};
+use crate::rest::APP_USER_AGENT;
+use crate::rest::authorization::AuthzMethod;
+use crate::rest::endpoint::ApiEndpoint;
+use crate::rest::error::Error;
 
 #[derive(Debug)]
 pub struct ApiClient {
@@ -91,62 +82,4 @@ impl ApiClient {
     {
         self.request(Method::PATCH, endpoint, data, params).await
     }
-}
-
-pub trait AuthzMethod {
-    fn headers(&self) -> Result<HeaderMap, Error>;
-}
-
-pub struct BearerAuthz(String);
-
-impl BearerAuthz {
-    #[instrument(skip(token))]
-    pub fn new(token: &str) -> Self {
-        BearerAuthz(token.to_string())
-    }
-}
-
-impl std::fmt::Debug for BearerAuthz {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("BearerAuthz").field(&"REDACTED").finish()
-    }
-}
-
-impl AuthzMethod for BearerAuthz {
-    #[instrument]
-    fn headers(&self) -> Result<HeaderMap, Error> {
-        let mut headers = HeaderMap::new();
-
-        let header_data_raw = format!("Bearer {}", self.0);
-        let mut secret = reqwest::header::HeaderValue::from_str(&header_data_raw)
-            .map_err(|e| Error::InvalidHeaderValue(AUTHORIZATION, header_data_raw, e))?;
-        secret.set_sensitive(true);
-        headers.insert(AUTHORIZATION, secret);
-
-        Ok(headers)
-    }
-}
-
-pub trait ParamsBuilder {
-    type Params: IntoIterator<Item = (String, String)>;
-
-    fn build(self) -> Self::Params;
-}
-
-impl ParamsBuilder for () {
-    type Params = Option<(String, String)>;
-
-    fn build(self) -> Self::Params {
-        None
-    }
-}
-
-pub trait ApiEndpoint: std::fmt::Debug {
-    type Params: ParamsBuilder;
-    type ResponseDataType: for<'de> serde::Deserialize<'de>;
-    type RequestDataType: serde::Serialize;
-
-    fn path(&self) -> String;
-    fn params() -> Self::Params;
-    fn rate_limit() -> Option<f32> { None }
 }
