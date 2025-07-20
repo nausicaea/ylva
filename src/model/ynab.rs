@@ -31,7 +31,7 @@ impl Display for TransactionType {
 pub struct Transaction {
     pub id: Id,
     pub date: chrono::NaiveDate,
-    pub amount: i128,
+    pub amount: i64,
     pub memo: Option<String>,
     pub cleared: TransactionStatus,
     pub approved: bool,
@@ -54,7 +54,7 @@ pub struct Transaction {
 pub struct Subtransaction {
     pub id: Id,
     pub transaction_id: Id,
-    pub amount: f32,
+    pub amount: i64,
     pub memo: String,
     pub payee_id: Id,
     pub payee_name: String,

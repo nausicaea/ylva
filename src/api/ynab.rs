@@ -60,7 +60,7 @@ pub mod update_transactions {
         pub id: Id,
         pub account_id: Id,
         pub date: chrono::NaiveDate,
-        pub amount: i128,
+        pub amount: i64,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub payee_id: Option<Id>,
         #[serde(skip_serializing_if = "Option::is_none")]
