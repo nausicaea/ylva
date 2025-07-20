@@ -1,17 +1,10 @@
 use clap::Parser;
 use tracing::{debug, info, trace};
 
-use crate::{
+use ylva::{
     actions::{ApproveSpec, AssignCategoriesSpec, AssignPayeesSpec, approve, assign_categories, assign_payees},
     args::{AssignCommand, Command},
 };
-
-pub mod actions;
-pub mod api;
-pub mod args;
-pub mod config;
-pub mod model;
-pub mod rest;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -21,14 +14,14 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     debug!("Parsing command line arguments");
-    let args = crate::args::Args::parse();
+    let args = ylva::args::Args::parse();
 
     debug!("Loading configuration data");
-    let default_config_path = config::Config::default_path()?;
+    let default_config_path = ylva::config::Config::default_path()?;
     let config = if !default_config_path.is_file() {
-        config::Config::create(&default_config_path)?
+        ylva::config::Config::create(&default_config_path)?
     } else {
-        config::Config::load(&default_config_path)?
+        ylva::config::Config::load(&default_config_path)?
     };
 
     if args.dry_run {
@@ -52,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
                 api_token: &config.api_token().await?,
                 budget_id: &config.budget_id,
             })
-            .await?
+                .await?
         }
         Command::Assign {
             filter,
@@ -70,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
                 api_token: &config.api_token().await?,
                 budget_id: &config.budget_id,
             })
-            .await?
+                .await?
         }
         Command::Assign {
             filter,
@@ -88,7 +81,7 @@ async fn main() -> anyhow::Result<()> {
                 api_token: &config.api_token().await?,
                 budget_id: &config.budget_id,
             })
-            .await?
+                .await?
         }
     }
 
