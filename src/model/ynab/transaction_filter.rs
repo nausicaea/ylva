@@ -34,3 +34,25 @@ impl TransactionFilter {
         successes.iter().all(|f| *f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use super::*;
+
+    #[rstest]
+    #[case(TransactionFilter::TRANSFER, Transaction::new(true, false, TransactionStatus::Uncleared, false, false, false))]
+    #[case(TransactionFilter::TRANSFER, Transaction::new(true, false, TransactionStatus::Uncleared, false, false, false))]
+    fn transfer_match(#[case] filter: TransactionFilter, #[case] transaction: Transaction) {
+        assert!(filter.matches(&transaction));
+    }
+
+    #[test]
+    fn placeholder() {
+        let t = Transaction::new(false, false, TransactionStatus::Uncleared, true, true, false);
+        assert!((TransactionFilter::ASSIGNED_CATEGORY | TransactionFilter::ASSIGNED_PAYEE).matches(&t));
+
+        let t = Transaction::new(false, false, TransactionStatus::Uncleared, false, true, false);
+        assert!(!(TransactionFilter::ASSIGNED_CATEGORY | TransactionFilter::ASSIGNED_PAYEE).matches(&t));
+    }
+}

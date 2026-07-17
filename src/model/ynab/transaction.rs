@@ -24,3 +24,30 @@ pub struct Transaction {
     pub category_name: Option<String>,
     pub subtransactions: Vec<Subtransaction>,
 }
+
+#[cfg(test)]
+impl Transaction {
+    pub(crate) fn new(transfer: bool, approved: bool, status: TransactionStatus, with_payee: bool, with_category: bool, with_memo: bool) -> Self {
+        Transaction {
+            id: Id::new_placeholder(),
+            date: Default::default(),
+            amount: rand::random(),
+            memo: if with_memo { Some("placeholder".into()) } else { None },
+            cleared: status,
+            approved,
+            flag_color: None,
+            account_id: Id::new_placeholder(),
+            payee_id: if with_payee { Some(Id::new_placeholder()) } else { None },
+            category_id: if with_category { Some(Id::new_placeholder())} else { None },
+            transfer_account_id: None,
+            transfer_transaction_id: if transfer { Some(Id::new_placeholder()) } else { None },
+            matched_transaction_id: None,
+            import_id: None,
+            deleted: false,
+            account_name: "placeholder".to_string(),
+            payee_name: None,
+            category_name: None,
+            subtransactions: vec![],
+        }
+    }
+}
