@@ -820,21 +820,21 @@ dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "requests
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.23.0"
+version = "0.26.0"
 description = "Pytest support for asyncio"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "pytest-asyncio-0.23.0.tar.gz", hash = "sha256:236e89745b8be43b3b473640b523f26fe3c62a2afa7548e38532e9f201d22fc3"},
-    {file = "pytest_asyncio-0.23.0-py3-none-any.whl", hash = "sha256:91ef405536331eb9971511aeb08225869985d800cf491015f7407044e7d1d7f8"},
+    {file = "pytest_asyncio-0.26.0-py3-none-any.whl", hash = "sha256:7b51ed894f4fbea1340262bdae5135797ebbe21d8638978e35d31c6d19f72fb0"},
+    {file = "pytest_asyncio-0.26.0.tar.gz", hash = "sha256:c4df2a697648241ff39e7f0e4a73050b03f123f760673956cf0d72a4990e312f"},
 ]
 
 [package.dependencies]
-pytest = ">=7.0.0"
+pytest = ">=8.2,<9"
 
 [package.extras]
-docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
+docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1)"]
 testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
 
 [[package]]
@@ -921,7 +921,7 @@ cache = ["charmonium.cache (>=1.2.11,<2.0.0)"]
 
 [package.source]
 type = "git"
-url = "ssh://git@gitlab.com/nausicaea/reidun.git"
+url = "https://github.com/nausicaea/reidun.git"
 reference = "v0.5.9"
 resolved_reference = "c2320f5bceddc082bdd1e48a425bafc79cea172b"
 
@@ -1149,4 +1149,4 @@ progress = ["tqdm"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "8e3de26e164933b70ef4564e394a2b0490b92f0f91986321efbfac6258e5b057"
+content-hash = "90264d514ac6aa4eb2e8f83b0718a87f3bb660ea464229937647e64ec0922409"
