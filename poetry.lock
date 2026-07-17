@@ -539,14 +539,14 @@ typing-extensions = {version = ">=4.1.0", markers = "python_version < \"3.11\""}
 
 [[package]]
 name = "ofxstatement"
-version = "0.9.2"
+version = "0.9.3"
 description = "Tool to convert proprietary bank statement to OFX format, suitable for importing to GnuCash"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "ofxstatement-0.9.2-py3-none-any.whl", hash = "sha256:4a90c5406b3cd07f7f06d4645ce7e1b574d09531de25cb9c0f4d6819eff55b01"},
-    {file = "ofxstatement-0.9.2.tar.gz", hash = "sha256:5c1b7b85b7d7bc2397ab0523aec0e702a27ae574ebd550743d951ffed4117152"},
+    {file = "ofxstatement-0.9.3-py3-none-any.whl", hash = "sha256:092285583f5d1784ddccf1f1b8427ed39839ea67d76a7ea65ec0af52edfe9a59"},
+    {file = "ofxstatement-0.9.3.tar.gz", hash = "sha256:e56f0bdaad75057bc3e091d8983b7c61aa2f71a5e22afc8164ce5238e777a73e"},
 ]
 
 [package.dependencies]
