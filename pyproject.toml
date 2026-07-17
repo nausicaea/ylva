@@ -23,7 +23,7 @@ ofxstatement-iso20022 = "^0.8.1"
 ofxstatement-bkb = {git = "https://github.com/nausicaea/ofxstatement-bkb.git"}
 
 [tool.poetry.dev-dependencies]
-pytest = "8.4.2"
+pytest = "9.1.1"
 pytest-asyncio = "1.4.0"
 
 [build-system]
