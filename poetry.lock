@@ -917,7 +917,7 @@ files = [
 
 [[package]]
 name = "reidun"
-version = "0.5.9"
+version = "0.6.0"
 description = "Reidun provides abstractions over REST APIs for clients"
 optional = false
 python-versions = "^3.10"
@@ -937,8 +937,8 @@ cache = ["charmonium.cache (>=1.2.11,<2.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/nausicaea/reidun.git"
-reference = "v0.5.9"
-resolved_reference = "c2320f5bceddc082bdd1e48a425bafc79cea172b"
+reference = "v0.6.0"
+resolved_reference = "5d281b463a3df1a6ac545450e1f86d7f854e1510"
 
 [[package]]
 name = "rich"
@@ -1162,4 +1162,4 @@ progress = ["tqdm"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "65ef77006f9056248f23b0fe4dda1e2e620e16d340056dd674b2c11433ecdabe"
+content-hash = "93f26191587881e2bfa3f5f0876475890b6d3a517a4adda975af19b80ebe9e4c"
