@@ -1153,5 +1153,5 @@ progress = ["tqdm"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = "3.14.7"
-content-hash = "b0203895d0f7099caa32b53ce719025dd843a6aaa8ad97b290d61740e4764336"
+python-versions = "3.14.8"
+content-hash = "2e510812d5c1771a5313e147d477ccace14665ea7cf55d7d7d53cd50e45644a9"
