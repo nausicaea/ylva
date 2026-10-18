@@ -13,7 +13,7 @@ progress = ["tqdm"]
 [tool.poetry.dependencies]
 python = "3.14.7"
 reidun = {git = "https://github.com/nausicaea/reidun.git", tag = "v0.6.0"}
-aiohttp = "3.14.4"
+aiohttp = "3.14.5"
 appdirs = "1.4.4"
 mashumaro = {version = "3.23", extras = ["yaml"]}
 tqdm = {version = "4.70.1", optional = true}
