@@ -24,7 +24,7 @@ ofxstatement-bkb = {git = "https://github.com/nausicaea/ofxstatement-bkb.git"}
 
 [tool.poetry.dev-dependencies]
 pytest = "9.1.1"
-pytest-asyncio = "1.4.0"
+pytest-asyncio = "1.4.1"
 
 [build-system]
 requires = ["poetry-core==2.5.0"]
