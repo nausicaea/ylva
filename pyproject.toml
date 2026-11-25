@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ylva"
-version = "0.2.0"
+version = "0.3.0"
 description = "Ylva integrates with YNAB and lets you automate actions"
 authors = ["Eleanor Young <developer@nausicaea.net>"]
 
